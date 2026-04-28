@@ -2,6 +2,8 @@
 
 Skills I use daily for code work.
 
+- **[spring-base](./spring-base/SKILL.md)** — Enterprise Spring Boot 4 development guide: layered architecture, constructor injection, service/controller/entity templates, global exception handling, and PR checklist.
+- **[jpa-patterns](./jpa-patterns/SKILL.md)** — JPA/Hibernate persistence patterns: N+1 diagnosis and fixes, DTO projections, aggregate-boundary repository design, bulk operations, and performance tuning. Includes [query-patterns.md](./jpa-patterns/query-patterns.md) and [performance-guide.md](./jpa-patterns/performance-guide.md).
 - **[diagnose](./diagnose/SKILL.md)** — Disciplined diagnosis loop for hard bugs and performance regressions: reproduce → minimise → hypothesise → instrument → fix → regression-test.
 - **[grill-with-docs](./grill-with-docs/SKILL.md)** — Grilling session that challenges your plan against the existing domain model, sharpens terminology, and updates `CONTEXT.md` and ADRs inline.
 - **[github-triage](./github-triage/SKILL.md)** — Triage GitHub issues through a label-based state machine.

@@ -1,6 +1,8 @@
 {
   "name": "mattpocock-skills",
   "skills": [
+    "./skills/engineering/spring-base",
+    "./skills/engineering/jpa-patterns",
     "./skills/engineering/diagnose",
     "./skills/engineering/grill-with-docs",
     "./skills/engineering/github-triage",
