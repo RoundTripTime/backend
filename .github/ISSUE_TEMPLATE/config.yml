@@ -1,0 +1,6 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: 💬 질문 / 토론
+    url: https://github.com/hooneybadger/backend/discussions
+    about: 버그나 기능 제안이 아닌 일반적인 질문은 Discussions를 이용해주세요.
