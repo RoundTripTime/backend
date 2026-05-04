@@ -22,6 +22,8 @@ gradle-app.setting
 # -----------------------------------------------
 HELP.md
 /target/
+src/main/resources/application-local.yml
+src/main/resources/application-secret.yml
 
 # -----------------------------------------------
 # Environment & Secrets
