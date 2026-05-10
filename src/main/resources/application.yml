@@ -26,6 +26,9 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
 
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+
 server:
   port: ${SERVER_PORT:8080}
 
