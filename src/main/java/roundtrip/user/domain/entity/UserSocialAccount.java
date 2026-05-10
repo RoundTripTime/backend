@@ -1,4 +1,4 @@
-package roundtrip.user.domain;
+package roundtrip.user.domain.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

@@ -1,7 +1,7 @@
-package roundtrip.user.repository;
+package roundtrip.user.domain.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import roundtrip.user.domain.UserSocialAccount;
+import roundtrip.user.domain.entity.UserSocialAccount;
 
 import java.util.Optional;
 import java.util.UUID;

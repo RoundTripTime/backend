@@ -1,4 +1,4 @@
-package roundtrip.user.exception;
+package roundtrip.user.domain.exception;
 
 import org.springframework.http.HttpStatus;
 import roundtrip.common.exception.BusinessException;

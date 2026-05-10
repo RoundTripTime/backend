@@ -1,4 +1,4 @@
-package roundtrip.user.domain;
+package roundtrip.user.domain.service;
 
 import org.springframework.stereotype.Component;
 
