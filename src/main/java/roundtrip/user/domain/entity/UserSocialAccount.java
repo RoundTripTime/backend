@@ -9,16 +9,16 @@ import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
+import roundtrip.common.entity.BaseEntity;
 
-import java.time.OffsetDateTime;
+import java.util.Objects;
 import java.util.UUID;
 
 @Entity
 @Table(name = "user_social_accounts")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class UserSocialAccount {
+public class UserSocialAccount extends BaseEntity<UUID> {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -33,15 +33,22 @@ public class UserSocialAccount {
     @Column(name = "social_id", nullable = false, length = 255)
     private String socialId;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private OffsetDateTime createdAt;
+    public static UserSocialAccount link(UUID userId, String provider, String socialId) {
+        Objects.requireNonNull(userId, "userId는 null일 수 없습니다");
+        requireNonBlank(provider, "provider");
+        requireNonBlank(socialId, "socialId");
 
-    public static UserSocialAccount create(UUID userId, String provider, String socialId) {
         var account = new UserSocialAccount();
         account.userId = userId;
         account.provider = provider;
         account.socialId = socialId;
         return account;
+    }
+
+    private static void requireNonBlank(String value, String fieldName) {
+        Objects.requireNonNull(value, fieldName + "은(는) null일 수 없습니다");
+        if (value.isBlank()) {
+            throw new IllegalArgumentException(fieldName + "은(는) 비어있을 수 없습니다");
+        }
     }
 }
