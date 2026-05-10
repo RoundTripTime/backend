@@ -30,7 +30,7 @@ public class UserSocialAccount extends BaseEntity<UUID> {
     @Column(nullable = false, length = 20)
     private String provider;
 
-    @Column(name = "social_id", nullable = false, length = 255)
+    @Column(name = "social_id", nullable = false)
     private String socialId;
 
     public static UserSocialAccount link(UUID userId, String provider, String socialId) {

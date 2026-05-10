@@ -25,7 +25,6 @@ public class User extends BaseEntity<UUID> {
     private UUID id;
 
     @Convert(converter = EmailConverter.class)
-    @Column(length = 255)
     private Email email;
 
     @Convert(converter = NicknameConverter.class)
