@@ -1,11 +1,11 @@
 package roundtrip.auth.infrastructure.social;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import roundtrip.common.exception.BusinessException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.math.BigInteger;
 import java.security.KeyFactory;
@@ -21,12 +21,12 @@ import java.util.concurrent.ConcurrentMap;
 public class JwksKeyResolver {
 
     private final RestClient restClient;
-    private final ObjectMapper objectMapper;
+    private final JsonMapper jsonMapper;
     private final ConcurrentMap<String, Map<String, PublicKey>> cache = new ConcurrentHashMap<>();
 
-    public JwksKeyResolver(ObjectMapper objectMapper, RestClient.Builder restClientBuilder) {
-        this.restClient = restClientBuilder.build();
-        this.objectMapper = objectMapper;
+    public JwksKeyResolver(JsonMapper jsonMapper) {
+        this.restClient = RestClient.create();
+        this.jsonMapper = jsonMapper;
     }
 
     public PublicKey resolve(String jwksUri, String kid) {
@@ -54,7 +54,7 @@ public class JwksKeyResolver {
             if (body == null) {
                 throw new IllegalStateException("JWKS 응답 본문이 비어있습니다");
             }
-            JsonNode root = objectMapper.readTree(body);
+            JsonNode root = jsonMapper.readTree(body);
             JsonNode keysNode = root.path("keys");
             Map<String, PublicKey> map = new HashMap<>();
             KeyFactory rsaFactory = KeyFactory.getInstance("RSA");
