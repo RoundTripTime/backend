@@ -1,32 +1,35 @@
 package roundtrip.user.domain.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
+import roundtrip.common.entity.BaseEntity;
+import roundtrip.user.domain.vo.Email;
+import roundtrip.user.domain.vo.EmailConverter;
+import roundtrip.user.domain.vo.Nickname;
+import roundtrip.user.domain.vo.NicknameConverter;
 
-import java.time.OffsetDateTime;
+import java.util.Objects;
 import java.util.UUID;
 
 @Entity
 @Table(name = "users")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class User {
+public class User extends BaseEntity<UUID> {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(columnDefinition = "uuid", nullable = false, updatable = false)
     private UUID id;
 
-    @Email(regexp = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
-    private String email;
+    @Convert(converter = EmailConverter.class)
+    private Email email;
 
+    @Convert(converter = NicknameConverter.class)
     @Column(nullable = false, length = 50)
-    private String nickname;
+    private Nickname nickname;
 
     @Column(name = "avatar_url", length = 500)
     private String avatarUrl;
@@ -44,19 +47,51 @@ public class User {
     @Column(name = "credit_balance", nullable = false)
     private int creditBalance;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private OffsetDateTime createdAt;
+    public static User register(Email email, Nickname nickname, String avatarUrl,
+                                String locale, String homeRegion) {
+        Objects.requireNonNull(nickname, "nickname은 null일 수 없습니다");
+        requireNonBlank(locale, "locale");
+        requireNonBlank(homeRegion, "homeRegion");
 
-    @Builder
-    private User(String email, String nickname, String avatarUrl,
-                 String locale, String homeRegion) {
-        this.email = email;
-        this.nickname = nickname;
-        this.avatarUrl = avatarUrl;
-        this.locale = locale;
-        this.homeRegion = homeRegion;
-        this.mapProvider = MapProvider.KAKAO;
-        this.creditBalance = 0;
+        var user = new User();
+        user.email = email;
+        user.nickname = nickname;
+        user.avatarUrl = avatarUrl;
+        user.locale = locale;
+        user.homeRegion = homeRegion;
+        user.mapProvider = MapProvider.KAKAO;
+        user.creditBalance = 0;
+        return user;
+    }
+
+    public void changeNickname(Nickname newNickname) {
+        Objects.requireNonNull(newNickname, "nickname은 null일 수 없습니다");
+        this.nickname = newNickname;
+    }
+
+    public void changeAvatar(String newAvatarUrl) {
+        this.avatarUrl = newAvatarUrl;
+    }
+
+    public void changeHomeRegion(String newHomeRegion) {
+        requireNonBlank(newHomeRegion, "homeRegion");
+        this.homeRegion = newHomeRegion;
+    }
+
+    public void changeLocale(String newLocale) {
+        requireNonBlank(newLocale, "locale");
+        this.locale = newLocale;
+    }
+
+    public void switchMapProvider(MapProvider newMapProvider) {
+        Objects.requireNonNull(newMapProvider, "mapProvider는 null일 수 없습니다");
+        this.mapProvider = newMapProvider;
+    }
+
+    private static void requireNonBlank(String value, String fieldName) {
+        Objects.requireNonNull(value, fieldName + "은(는) null일 수 없습니다");
+        if (value.isBlank()) {
+            throw new IllegalArgumentException(fieldName + "은(는) 비어있을 수 없습니다");
+        }
     }
 }

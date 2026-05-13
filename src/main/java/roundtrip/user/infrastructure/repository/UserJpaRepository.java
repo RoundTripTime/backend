@@ -1,18 +1,13 @@
-package roundtrip.user.domain.repository;
+package roundtrip.user.infrastructure.repository;
 
+import org.springframework.data.jpa.repository.JpaRepository;
 import roundtrip.user.domain.entity.User;
 import roundtrip.user.domain.vo.Email;
 
 import java.util.Optional;
 import java.util.UUID;
 
-public interface UserRepository {
-
-    Optional<User> findById(UUID id);
-
-    User save(User user);
-
-    void delete(User user);
+interface UserJpaRepository extends JpaRepository<User, UUID> {
 
     Optional<User> findByEmail(Email email);
 
