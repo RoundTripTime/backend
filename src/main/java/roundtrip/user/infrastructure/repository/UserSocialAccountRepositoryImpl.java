@@ -2,6 +2,7 @@ package roundtrip.user.infrastructure.repository;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+import roundtrip.user.domain.entity.SocialProvider;
 import roundtrip.user.domain.entity.UserSocialAccount;
 import roundtrip.user.domain.repository.UserSocialAccountRepository;
 
@@ -30,7 +31,7 @@ public class UserSocialAccountRepositoryImpl implements UserSocialAccountReposit
     }
 
     @Override
-    public Optional<UserSocialAccount> findByProviderAndSocialId(String provider, String socialId) {
+    public Optional<UserSocialAccount> findByProviderAndSocialId(SocialProvider provider, String socialId) {
         return jpa.findByProviderAndSocialId(provider, socialId);
     }
 }

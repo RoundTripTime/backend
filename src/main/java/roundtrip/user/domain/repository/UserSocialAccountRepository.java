@@ -1,5 +1,6 @@
 package roundtrip.user.domain.repository;
 
+import roundtrip.user.domain.entity.SocialProvider;
 import roundtrip.user.domain.entity.UserSocialAccount;
 
 import java.util.Optional;
@@ -13,5 +14,5 @@ public interface UserSocialAccountRepository {
 
     void delete(UserSocialAccount account);
 
-    Optional<UserSocialAccount> findByProviderAndSocialId(String provider, String socialId);
+    Optional<UserSocialAccount> findByProviderAndSocialId(SocialProvider provider, String socialId);
 }
