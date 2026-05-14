@@ -1,5 +1,6 @@
 package roundtrip.auth.presentation;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -18,6 +19,7 @@ import roundtrip.auth.presentation.dto.RefreshRequest;
 import roundtrip.auth.presentation.dto.RefreshResponse;
 import roundtrip.auth.presentation.dto.SignInRequest;
 import roundtrip.auth.presentation.dto.SignInResponse;
+import roundtrip.common.config.SwaggerConfig;
 
 import java.util.Locale;
 
@@ -44,6 +46,7 @@ public class AuthController {
 
     @DeleteMapping("/session")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @SecurityRequirement(name = SwaggerConfig.BEARER_SCHEME_NAME)
     public void logout(@AuthenticationPrincipal AuthenticatedUser principal){
         authService.logout(principal.userId());
     }

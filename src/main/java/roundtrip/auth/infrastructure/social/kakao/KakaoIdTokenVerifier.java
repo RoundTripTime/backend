@@ -1,5 +1,6 @@
 package roundtrip.auth.infrastructure.social.kakao;
 
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import roundtrip.auth.infrastructure.social.AbstractSocialIdTokenVerifier;
 import roundtrip.auth.infrastructure.social.JwksKeyResolver;
@@ -7,6 +8,7 @@ import roundtrip.auth.infrastructure.social.SocialAuthProperties;
 import roundtrip.user.domain.entity.SocialProvider;
 
 @Component
+@Profile("!local")
 public class KakaoIdTokenVerifier extends AbstractSocialIdTokenVerifier {
 
     private final SocialAuthProperties.ProviderConfig config;
