@@ -1,9 +1,9 @@
 package roundtrip.auth.infrastructure.social;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import roundtrip.auth.domain.SocialIdentity;
 import roundtrip.common.exception.BusinessException;
+import roundtrip.common.exception.ErrorCode;
 import roundtrip.user.domain.entity.SocialProvider;
 
 import java.util.List;
@@ -24,8 +24,7 @@ public class SocialIdTokenVerifierRegistry {
     public SocialIdentity verify(SocialProvider provider, String idToken) {
         SocialIdTokenVerifier verifier = byProvider.get(provider);
         if (verifier == null) {
-            throw new BusinessException(HttpStatus.BAD_REQUEST, "UNSUPPORTED_PROVIDER",
-                "지원하지 않는 소셜 provider 입니다: " + provider);
+            throw new BusinessException(ErrorCode.UNSUPPORTED_PROVIDER, "provider=" + provider);
         }
         return verifier.verify(idToken);
     }

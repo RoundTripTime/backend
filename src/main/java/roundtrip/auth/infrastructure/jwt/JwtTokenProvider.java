@@ -4,11 +4,11 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import roundtrip.auth.domain.IssuedTokens;
 import roundtrip.auth.domain.TokenType;
 import roundtrip.common.exception.BusinessException;
+import roundtrip.common.exception.ErrorCode;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
@@ -56,11 +56,12 @@ public class JwtTokenProvider {
                 .parseSignedClaims(token)
                 .getPayload();
         } catch (JwtException | IllegalArgumentException e) {
-            throw new BusinessException(HttpStatus.UNAUTHORIZED, "INVALID_TOKEN", "토큰이 유효하지 않습니다");
+            throw new BusinessException(ErrorCode.INVALID_TOKEN, "파싱 실패: " + e.getMessage());
         }
         String type = claims.get(CLAIM_TYPE, String.class);
         if (!expectedType.name().equals(type)) {
-            throw new BusinessException(HttpStatus.UNAUTHORIZED, "INVALID_TOKEN", "토큰 타입이 올바르지 않습니다");
+            throw new BusinessException(ErrorCode.INVALID_TOKEN,
+                "토큰 타입 불일치 expected=" + expectedType.name() + " actual=" + type);
         }
         return claims;
     }

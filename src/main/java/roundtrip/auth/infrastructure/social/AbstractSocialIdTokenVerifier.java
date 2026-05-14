@@ -3,9 +3,9 @@ package roundtrip.auth.infrastructure.social;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
-import org.springframework.http.HttpStatus;
 import roundtrip.auth.domain.SocialIdentity;
 import roundtrip.common.exception.BusinessException;
+import roundtrip.common.exception.ErrorCode;
 
 public abstract class AbstractSocialIdTokenVerifier implements SocialIdTokenVerifier {
 
@@ -25,8 +25,7 @@ public abstract class AbstractSocialIdTokenVerifier implements SocialIdTokenVeri
     public final SocialIdentity verify(String idToken) {
         String audience = expectedAudience();
         if (audience == null || audience.isBlank()) {
-            throw new BusinessException(HttpStatus.BAD_REQUEST, "PROVIDER_NOT_CONFIGURED",
-                provider() + " 로그인이 구성되지 않았습니다");
+            throw new BusinessException(ErrorCode.PROVIDER_NOT_CONFIGURED, "provider=" + provider());
         }
 
         Claims claims;
@@ -37,17 +36,14 @@ public abstract class AbstractSocialIdTokenVerifier implements SocialIdTokenVeri
                 .parseSignedClaims(idToken)
                 .getPayload();
         } catch (JwtException | IllegalArgumentException ex) {
-            throw new BusinessException(HttpStatus.UNAUTHORIZED, "INVALID_ID_TOKEN",
-                "id_token 검증 실패: " + ex.getMessage());
+            throw new BusinessException(ErrorCode.INVALID_ID_TOKEN, "검증 실패: " + ex.getMessage());
         }
 
         if (!isValidIssuer(claims.getIssuer())) {
-            throw new BusinessException(HttpStatus.UNAUTHORIZED, "INVALID_ID_TOKEN",
-                "iss가 올바르지 않습니다");
+            throw new BusinessException(ErrorCode.INVALID_ID_TOKEN, "iss=" + claims.getIssuer());
         }
         if (claims.getAudience() == null || !claims.getAudience().contains(audience)) {
-            throw new BusinessException(HttpStatus.UNAUTHORIZED, "INVALID_ID_TOKEN",
-                "aud가 올바르지 않습니다");
+            throw new BusinessException(ErrorCode.INVALID_ID_TOKEN, "aud=" + claims.getAudience());
         }
 
         return new SocialIdentity(provider(), claims.getSubject(), claims.get("email", String.class));

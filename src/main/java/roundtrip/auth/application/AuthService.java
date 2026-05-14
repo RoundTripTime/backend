@@ -2,7 +2,6 @@ package roundtrip.auth.application;
 
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import roundtrip.auth.domain.IssuedTokens;
@@ -12,6 +11,7 @@ import roundtrip.auth.infrastructure.jwt.JwtTokenProvider;
 import roundtrip.auth.infrastructure.refresh.RefreshTokenStore;
 import roundtrip.auth.infrastructure.social.SocialIdTokenVerifierRegistry;
 import roundtrip.common.exception.BusinessException;
+import roundtrip.common.exception.ErrorCode;
 import roundtrip.user.domain.entity.SocialProvider;
 import roundtrip.user.domain.entity.User;
 import roundtrip.user.domain.entity.UserSocialAccount;
@@ -49,8 +49,7 @@ public class AuthService {
         if (existing.isPresent()) {
             UUID userId = existing.get().getUserId();
             user = userRepository.findById(userId).orElseThrow(() ->
-                new BusinessException(HttpStatus.INTERNAL_SERVER_ERROR, "USER_NOT_FOUND",
-                    "연결된 사용자가 존재하지 않습니다"));
+                new BusinessException(ErrorCode.LINKED_USER_NOT_FOUND, "userId=" + userId));
             isNewUser = false;
         } else {
             user = registerNewUser(identity, clientLocale);
@@ -72,8 +71,8 @@ public class AuthService {
 
         if (!refreshTokenStore.exists(userId, oldJti)) {
             refreshTokenStore.deleteAll(userId);
-            throw new BusinessException(HttpStatus.UNAUTHORIZED, "INVALID_TOKEN",
-                "재사용되었거나 무효화된 refresh token 입니다");
+            throw new BusinessException(ErrorCode.INVALID_TOKEN,
+                "재사용되었거나 무효화된 refresh token (userId=" + userId + ")");
         }
         refreshTokenStore.delete(userId, oldJti);
 

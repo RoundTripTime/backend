@@ -45,7 +45,8 @@ class JwtTokenProviderTest {
 
         assertThatThrownBy(() -> provider.parseAndValidate(tokens.accessToken(), TokenType.REFRESH))
             .isInstanceOf(BusinessException.class)
-            .hasMessageContaining("토큰 타입이 올바르지 않습니다");
+            .extracting(ex -> ((BusinessException) ex).getCode())
+            .isEqualTo("INVALID_TOKEN");
     }
 
     @Test

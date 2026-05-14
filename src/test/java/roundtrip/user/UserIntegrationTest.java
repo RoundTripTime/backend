@@ -7,7 +7,6 @@ import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
@@ -26,6 +25,7 @@ import org.testcontainers.utility.DockerImageName;
 import roundtrip.auth.domain.SocialIdentity;
 import roundtrip.auth.infrastructure.social.SocialIdTokenVerifierRegistry;
 import roundtrip.common.exception.BusinessException;
+import roundtrip.common.exception.ErrorCode;
 import roundtrip.user.domain.entity.SocialProvider;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -86,7 +86,7 @@ class UserIntegrationTest {
         when(verifierRegistry.verify(eq(SocialProvider.KAKAO), eq("valid-token")))
             .thenReturn(new SocialIdentity(SocialProvider.KAKAO, "kakao-social-1", "u@example.com"));
         when(verifierRegistry.verify(eq(SocialProvider.KAKAO), eq("invalid-token")))
-            .thenThrow(new BusinessException(HttpStatus.UNAUTHORIZED, "INVALID_ID_TOKEN", "검증 실패"));
+            .thenThrow(new BusinessException(ErrorCode.INVALID_ID_TOKEN, "검증 실패"));
     }
 
     @AfterEach
