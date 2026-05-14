@@ -83,7 +83,7 @@ public class User extends BaseEntity<UUID> {
         this.locale = newLocale;
     }
 
-    public void switchMapProvider(MapProvider newMapProvider) {
+    public void changeMapProvider(MapProvider newMapProvider) {
         Objects.requireNonNull(newMapProvider, "mapProvider는 null일 수 없습니다");
         this.mapProvider = newMapProvider;
     }
@@ -93,5 +93,13 @@ public class User extends BaseEntity<UUID> {
         if (value.isBlank()) {
             throw new IllegalArgumentException(fieldName + "은(는) 비어있을 수 없습니다");
         }
+    }
+
+    public void updateProfile(Nickname nickname, String avatarUrl, String homeRegion, String locale, MapProvider mapProvider) {
+        if(nickname != null) changeNickname(nickname);
+        if(avatarUrl != null) changeAvatar(avatarUrl);
+        if(homeRegion != null) changeHomeRegion(homeRegion);
+        if(locale != null) changeLocale(locale);
+        if(mapProvider != null) changeMapProvider(mapProvider);
     }
 }

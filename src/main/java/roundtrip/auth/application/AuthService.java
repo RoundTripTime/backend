@@ -89,11 +89,10 @@ public class AuthService {
 
     private User registerNewUser(SocialIdentity identity, Locale clientLocale) {
         String localeTag = resolveLocale(clientLocale);
-        String homeRegion = deriveHomeRegion(localeTag);
         Email email = identity.email() == null ? null : new Email(identity.email());
         Nickname nickname = new Nickname(nicknameGenerator.generate());
 
-        User user = User.register(email, nickname, null, localeTag, homeRegion);
+        User user = User.register(email, nickname, null, localeTag, UNKNOWN_REGION);
         return userRepository.save(user);
     }
 
@@ -103,14 +102,5 @@ public class AuthService {
         }
         String tag = clientLocale.toLanguageTag();
         return (tag == null || tag.isBlank() || "und".equals(tag)) ? DEFAULT_LOCALE : tag;
-    }
-
-    private String deriveHomeRegion(String localeTag) {
-        String[] parts = localeTag.split("-");
-        if (parts.length < 2) {
-            return UNKNOWN_REGION;
-        }
-        String country = Locale.of("", parts[1]).getDisplayCountry(Locale.ENGLISH);
-        return country.isBlank() ? UNKNOWN_REGION : country;
     }
 }
