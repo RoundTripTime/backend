@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: ${DB_NAME:-roundtrip}
       POSTGRES_USER: ${DB_USERNAME:-roundtrip}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-roundtrip}
     ports:
       - "${DB_PORT:-5432}:5432"
     volumes:

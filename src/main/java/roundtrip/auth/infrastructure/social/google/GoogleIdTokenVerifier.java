@@ -1,5 +1,6 @@
 package roundtrip.auth.infrastructure.social.google;
 
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import roundtrip.auth.infrastructure.social.AbstractSocialIdTokenVerifier;
 import roundtrip.auth.infrastructure.social.JwksKeyResolver;
@@ -7,6 +8,7 @@ import roundtrip.auth.infrastructure.social.SocialAuthProperties;
 import roundtrip.user.domain.entity.SocialProvider;
 
 @Component
+@Profile("!local")
 public class GoogleIdTokenVerifier extends AbstractSocialIdTokenVerifier {
 
     private static final String ISS_WITH_SCHEME = "https://accounts.google.com";
