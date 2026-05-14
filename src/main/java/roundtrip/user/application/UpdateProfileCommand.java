@@ -1,9 +1,9 @@
-package roundtrip.user.presentation.dto;
+package roundtrip.user.application;
 
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-public record UpdateProfileRequest(
+public record UpdateProfileCommand(
     @Size(max = 20, message = "닉네임은 최대 20자입니다.")
     String nickname,
     String avatarUrl,
