@@ -83,7 +83,7 @@ public class User extends BaseEntity<UUID> {
         this.locale = newLocale;
     }
 
-    public void switchMapProvider(MapProvider newMapProvider) {
+    public void changeMapProvider(MapProvider newMapProvider) {
         Objects.requireNonNull(newMapProvider, "mapProvider는 null일 수 없습니다");
         this.mapProvider = newMapProvider;
     }
