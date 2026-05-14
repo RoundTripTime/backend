@@ -10,4 +10,5 @@ jwt:
 logging:
   level:
     roundtrip: DEBUG
-    org.springframework.security: DEBUG
+    # 인증/필터체인 디버깅이 필요할 때만 임시로 활성화.
+    # org.springframework.security: DEBUG
