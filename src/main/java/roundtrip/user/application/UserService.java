@@ -38,4 +38,11 @@ public class UserService {
 
         return user;
     }
+
+    @Transactional
+    public void withdraw(UUID userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new UserNotFoundException(userId));
+        userRepository.delete(user);
+    }
 }
