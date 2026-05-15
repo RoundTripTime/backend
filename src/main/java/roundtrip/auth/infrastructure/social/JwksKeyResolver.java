@@ -1,9 +1,9 @@
 package roundtrip.auth.infrastructure.social;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import roundtrip.common.exception.BusinessException;
+import roundtrip.common.exception.ErrorCode;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -31,8 +31,7 @@ public class JwksKeyResolver {
 
     public PublicKey resolve(String jwksUri, String kid) {
         if (kid == null || kid.isBlank()) {
-            throw new BusinessException(HttpStatus.UNAUTHORIZED, "INVALID_ID_TOKEN",
-                "id_token 헤더에 kid가 없습니다");
+            throw new BusinessException(ErrorCode.INVALID_ID_TOKEN, "id_token 헤더에 kid가 없습니다");
         }
         Map<String, PublicKey> keys = cache.computeIfAbsent(jwksUri, this::fetchKeys);
         PublicKey key = keys.get(kid);
@@ -42,8 +41,7 @@ public class JwksKeyResolver {
             key = keys.get(kid);
         }
         if (key == null) {
-            throw new BusinessException(HttpStatus.UNAUTHORIZED, "INVALID_ID_TOKEN",
-                "kid에 해당하는 공개키를 찾을 수 없습니다");
+            throw new BusinessException(ErrorCode.INVALID_ID_TOKEN, "공개키 없음 kid=" + kid);
         }
         return key;
     }
@@ -73,8 +71,8 @@ public class JwksKeyResolver {
             }
             return Map.copyOf(map);
         } catch (Exception ex) {
-            throw new BusinessException(HttpStatus.SERVICE_UNAVAILABLE, "JWKS_FETCH_FAILED",
-                "JWKS 조회/파싱 실패: " + ex.getMessage());
+            throw new BusinessException(ErrorCode.JWKS_FETCH_FAILED,
+                "JWKS 조회/파싱 실패 uri=" + jwksUri + " err=" + ex.getMessage());
         }
     }
 }

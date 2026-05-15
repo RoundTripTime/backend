@@ -122,7 +122,8 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> service.refresh("refresh-token"))
             .isInstanceOf(BusinessException.class)
-            .hasMessageContaining("재사용");
+            .extracting(ex -> ((BusinessException) ex).getCode())
+            .isEqualTo("INVALID_TOKEN");
 
         verify(refreshTokenStore).deleteAll(userId);
         verify(refreshTokenStore, never()).save(any(), any(), any());

@@ -6,12 +6,24 @@ import org.springframework.http.HttpStatus;
 @Getter
 public class BusinessException extends RuntimeException {
 
-    private final HttpStatus status;
-    private final String code;
+    private final ErrorCode errorCode;
+    private final String detail;
 
-    public BusinessException(HttpStatus status, String code, String message) {
-        super(message);
-        this.status = status;
-        this.code = code;
+    public BusinessException(ErrorCode errorCode) {
+        this(errorCode, null);
+    }
+
+    public BusinessException(ErrorCode errorCode, String detail) {
+        super(errorCode.getDefaultMessage());
+        this.errorCode = errorCode;
+        this.detail = detail;
+    }
+
+    public HttpStatus getStatus() {
+        return errorCode.getStatus();
+    }
+
+    public String getCode() {
+        return errorCode.name();
     }
 }

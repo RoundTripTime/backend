@@ -54,7 +54,9 @@ class UserServiceTest {
 
         assertThatThrownBy(() -> service.getMyProfile(userId))
             .isInstanceOf(UserNotFoundException.class)
-            .hasMessageContaining(userId.toString());
+            .extracting(ex -> ((UserNotFoundException) ex).getDetail())
+            .asString()
+            .contains(userId.toString());
     }
 
     @Test
