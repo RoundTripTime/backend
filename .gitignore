@@ -91,3 +91,5 @@ src/main/resources/db/migration/local/
 # -----------------------------------------------
 test-results/
 reports/
+
+docs/
