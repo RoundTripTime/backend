@@ -1,6 +1,6 @@
 package roundtrip.sourcelink.presentation.dto;
 
-import roundtrip.parsing.domain.entity.ExtractionJob;
+import roundtrip.extract.domain.entity.ExtractionJob;
 import roundtrip.sourcelink.application.SourceLinkService;
 import roundtrip.sourcelink.domain.entity.SourceLink;
 

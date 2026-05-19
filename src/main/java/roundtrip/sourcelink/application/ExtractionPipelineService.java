@@ -7,8 +7,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
-import roundtrip.parsing.domain.entity.ExtractionJob;
-import roundtrip.parsing.domain.repository.ExtractionJobRepository;
+import roundtrip.extract.domain.entity.ExtractionJob;
+import roundtrip.extract.domain.repository.ExtractionJobRepository;
 import roundtrip.candidate.domain.entity.PlaceCandidate;
 import roundtrip.candidate.domain.repository.PlaceCandidateRepository;
 import roundtrip.sourcelink.domain.entity.SourceLink;
@@ -47,11 +47,9 @@ public class ExtractionPipelineService {
         startJob(job);
 
         try {
-            // Phase 1: Supadata Metadata
             SupadataMetadataResponse metadata = supadataClient.fetchMetadata(sourceLink.getUrl());
             updateSourceLinkProcessing(sourceLink, metadata);
 
-            // Phase 1b: Gemini on metadata
             String metadataContent = buildMetadataContent(metadata);
             List<GeminiPlaceParseResult> phase1Result = geminiClient.parsePlaces(metadataContent);
 
@@ -59,10 +57,8 @@ public class ExtractionPipelineService {
                 List<PlaceCandidate> candidates = normalizePlaces(phase1Result, job);
                 completeJob(job, sourceLink, candidates.size());
             } else {
-                // Phase 2: Supadata Extract
                 String prompt = buildExtractPrompt(metadata);
                 SupadataExtractResponse extractResponse = supadataClient.submitExtract(sourceLink.getUrl(), prompt);
-
                 SupadataExtractResultResponse extractResult = pollExtractResult(extractResponse.jobId());
 
                 if ("failed".equals(extractResult.status())) {
@@ -70,7 +66,6 @@ public class ExtractionPipelineService {
                     return;
                 }
 
-                // Phase 2b: Gemini on full extract
                 String fullContent = buildFullContent(metadata, extractResult);
                 List<GeminiPlaceParseResult> phase2Result = geminiClient.parsePlaces(fullContent);
 
@@ -160,14 +155,14 @@ public class ExtractionPipelineService {
 
             PlaceCandidate candidate = PlaceCandidate.create(
                     job.getId(),
-                    null,          // place_id: 지도 정규화 전 null
+                    null,
                     result.name(),
                     result.category(),
                     BigDecimal.valueOf(result.confidence()),
                     rank++,
                     requiresConfirmation,
                     result.evidence(),
-                    null           // providerMatchJson: 지도 정규화 전 null
+                    null
             );
             candidates.add(candidate);
         }
