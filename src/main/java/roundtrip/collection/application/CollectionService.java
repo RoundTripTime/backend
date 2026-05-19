@@ -1,6 +1,7 @@
 package roundtrip.collection.application;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import roundtrip.collection.domain.entity.Collection;
@@ -17,7 +18,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class CollectionService {
 
-    private static final String BASE_SHARE_URL = "https://app.example.com/share/collections/";
+    @Value("${app.share-base-url}")
+    private String baseShareUrl;
 
     private final CollectionRepository collectionRepository;
     private final PlaceRepository placeRepository;
@@ -88,7 +90,7 @@ public class CollectionService {
         Collection collection = findOwnedCollection(userId, collectionId);
         String token = collection.ensureShareToken();
         collectionRepository.save(collection);
-        return new ShareInfo(BASE_SHARE_URL + token, collection.getVisibility());
+        return new ShareInfo(baseShareUrl + token, collection.getVisibility());
     }
 
     private Collection findOwnedCollection(UUID userId, UUID collectionId) {
