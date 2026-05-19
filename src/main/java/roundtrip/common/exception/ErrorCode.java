@@ -10,6 +10,9 @@ public enum ErrorCode {
     VALIDATION_ERROR(HttpStatus.BAD_REQUEST, "입력값이 올바르지 않습니다."),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "인증이 필요합니다."),
     FORBIDDEN(HttpStatus.FORBIDDEN, "접근 권한이 없습니다."),
+    NOT_FOUND(HttpStatus.NOT_FOUND, "리소스를 찾을 수 없습니다."),
+    CONFLICT(HttpStatus.CONFLICT, "이미 존재하는 리소스입니다."),
+    UNPROCESSABLE(HttpStatus.UNPROCESSABLE_CONTENT, "처리할 수 없는 상태입니다."),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 오류가 발생했습니다."),
 
     // 인증
@@ -27,7 +30,7 @@ public enum ErrorCode {
 
     // 링크 수집
     SOURCE_LINK_NOT_FOUND(HttpStatus.NOT_FOUND, "링크를 찾을 수 없습니다."),
-    UNSUPPORTED_PLATFORM(HttpStatus.UNPROCESSABLE_ENTITY, "지원하지 않는 URL 플랫폼입니다."),
+    UNSUPPORTED_PLATFORM(HttpStatus.UNPROCESSABLE_CONTENT, "지원하지 않는 URL 플랫폼입니다."),
     DUPLICATE_LINK(HttpStatus.CONFLICT, "이미 처리 중인 동일 링크입니다."),
 
     // 분석 잡 / 장소 후보
@@ -53,12 +56,12 @@ public enum ErrorCode {
 
     // 플랜 마켓 / 크레딧 / 광고
     MARKET_PLAN_NOT_FOUND(HttpStatus.NOT_FOUND, "마켓 플랜을 찾을 수 없습니다."),
-    OTA_NOT_VERIFIED(HttpStatus.UNPROCESSABLE_ENTITY, "OTA 예약이 완료되지 않은 플랜입니다."),
+    OTA_NOT_VERIFIED(HttpStatus.UNPROCESSABLE_CONTENT, "OTA 예약이 완료되지 않은 플랜입니다."),
     ALREADY_LISTED(HttpStatus.CONFLICT, "이미 마켓에 등록된 플랜입니다."),
     INSUFFICIENT_CREDITS(HttpStatus.PAYMENT_REQUIRED, "크레딧이 부족합니다."),
     AD_SESSION_NOT_FOUND(HttpStatus.NOT_FOUND, "광고 세션을 찾을 수 없습니다."),
-    AD_LIMIT_REACHED(HttpStatus.UNPROCESSABLE_ENTITY, "일일 광고 시청 한도를 초과했습니다."),
-    INVALID_AD_SESSION(HttpStatus.UNPROCESSABLE_ENTITY, "유효하지 않거나 만료된 광고 세션입니다."),
+    AD_LIMIT_REACHED(HttpStatus.UNPROCESSABLE_CONTENT, "일일 광고 시청 한도를 초과했습니다."),
+    INVALID_AD_SESSION(HttpStatus.UNPROCESSABLE_CONTENT, "유효하지 않거나 만료된 광고 세션입니다."),
     AD_ALREADY_COMPLETED(HttpStatus.CONFLICT, "이미 완료 처리된 광고 세션입니다."),
 
     // 알림 / 공유

@@ -8,6 +8,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import roundtrip.auth.domain.AuthenticatedUser;
 import roundtrip.common.config.SwaggerConfig;
+import roundtrip.common.response.ApiResponse;
+import roundtrip.common.response.SuccessCode;
 import roundtrip.user.application.UpdateProfileCommand;
 import roundtrip.user.application.UserService;
 import roundtrip.user.presentation.dto.MyProfileResponse;
@@ -21,20 +23,23 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping
-    public MyProfileResponse getMyProfile(@AuthenticationPrincipal AuthenticatedUser principal) {
-        return MyProfileResponse.from(userService.getMyProfile(principal.userId()));
+    public ResponseEntity<MyProfileResponse> getMyProfile(
+            @AuthenticationPrincipal AuthenticatedUser principal) {
+        return ApiResponse.of(SuccessCode.USER_PROFILE_FETCHED,
+                MyProfileResponse.from(userService.getMyProfile(principal.userId())));
     }
 
     @PatchMapping
-    public MyProfileResponse updateProfile(@AuthenticationPrincipal AuthenticatedUser principal,
-                                           @Valid @RequestBody UpdateProfileCommand command) {
-        return MyProfileResponse.from(userService.updateMyProfile(principal.userId(), command));
+    public ResponseEntity<MyProfileResponse> updateProfile(
+            @AuthenticationPrincipal AuthenticatedUser principal,
+            @Valid @RequestBody UpdateProfileCommand command) {
+        return ApiResponse.of(SuccessCode.USER_PROFILE_UPDATED,
+                MyProfileResponse.from(userService.updateMyProfile(principal.userId(), command)));
     }
 
     @DeleteMapping
-    public ResponseEntity<Void> deleteUser(@AuthenticationPrincipal AuthenticatedUser principal){
+    public ResponseEntity<Void> deleteUser(@AuthenticationPrincipal AuthenticatedUser principal) {
         userService.withdraw(principal.userId());
-        return ResponseEntity.noContent().build();
+        return ApiResponse.noContent(SuccessCode.USER_ACCOUNT_DELETED);
     }
-
 }
