@@ -34,4 +34,14 @@ public class PlaceCandidateRepositoryImpl implements PlaceCandidateRepository {
     public List<PlaceCandidate> findByJobId(UUID jobId) {
         return jpa.findByJobId(jobId);
     }
+
+    @Override
+    public Optional<PlaceCandidate> findFirstByPlaceId(UUID placeId) {
+        return jpa.findFirstByPlaceId(placeId);
+    }
+
+    @Override
+    public List<PlaceCandidate> findByPlaceId(UUID placeId) {
+        return jpa.findByPlaceId(placeId);
+    }
 }

@@ -1,0 +1,139 @@
+package roundtrip.place.application;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import roundtrip.candidate.domain.entity.PlaceCandidate;
+import roundtrip.candidate.domain.repository.PlaceCandidateRepository;
+import roundtrip.common.exception.BusinessException;
+import roundtrip.common.exception.ErrorCode;
+import roundtrip.extract.domain.entity.ExtractionJob;
+import roundtrip.extract.domain.repository.ExtractionJobRepository;
+import roundtrip.place.domain.entity.Place;
+import roundtrip.place.domain.entity.PlaceCategory;
+import roundtrip.place.domain.repository.PlaceRepository;
+import roundtrip.sourcelink.domain.entity.SourceLink;
+import roundtrip.sourcelink.domain.repository.SourceLinkRepository;
+import roundtrip.sourcelink.infrastructure.external.KakaoLocalClient;
+import roundtrip.sourcelink.infrastructure.external.KakaoLocalDocument;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+public class PlaceService {
+
+    private static final int COLDSTART_THRESHOLD = 3;
+
+    private final PlaceRepository placeRepository;
+    private final PlaceCandidateRepository candidateRepository;
+    private final ExtractionJobRepository jobRepository;
+    private final SourceLinkRepository sourceLinkRepository;
+    private final KakaoLocalClient kakaoLocalClient;
+
+    @Transactional(readOnly = true)
+    public PlaceDetailResult getPlace(UUID placeId) {
+        Place place = placeRepository.findById(placeId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PLACE_NOT_FOUND));
+        SourceLink sourceLink = findSourceLinkForPlace(placeId);
+        return new PlaceDetailResult(place, sourceLink);
+    }
+
+    @Transactional
+    public List<Place> searchPlaces(String query, String provider) {
+        List<KakaoLocalDocument> docs = kakaoLocalClient.searchByKeyword(query);
+        return docs.stream()
+                .map(doc -> findOrCreateFromKakao(doc))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<PlaceRepository.PlaceSimilarRow> getSimilarPlaces(UUID placeId, int limit) {
+        placeRepository.findById(placeId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PLACE_NOT_FOUND));
+        return placeRepository.findSimilarPlacesRanked(placeId, limit);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PlaceRepository.DiscoverRow> getDiscover(
+            UUID userId, int limit, String categoryStr, String countryCode) {
+
+        PlaceCategory category = parseCategory(categoryStr);
+        List<PlaceRepository.DiscoverRow> results =
+                placeRepository.findDiscoverPlaces(userId, limit, category, countryCode);
+
+        if (results.size() < COLDSTART_THRESHOLD) {
+            return placeRepository.findDiscoverPlacesColdStart(userId, limit, category, countryCode);
+        }
+        return results;
+    }
+
+    @Transactional(readOnly = true)
+    public List<SourceLinkResult> getSourceLinks(UUID placeId) {
+        placeRepository.findById(placeId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PLACE_NOT_FOUND));
+
+        List<PlaceCandidate> candidates = candidateRepository.findByPlaceId(placeId);
+        return candidates.stream()
+                .map(c -> {
+                    Optional<ExtractionJob> job = jobRepository.findById(c.getJobId());
+                    if (job.isEmpty()) return null;
+                    Optional<SourceLink> sl = sourceLinkRepository.findById(job.get().getSourceLinkId());
+                    return sl.map(s -> new SourceLinkResult(s, c)).orElse(null);
+                })
+                .filter(r -> r != null)
+                .distinct()
+                .toList();
+    }
+
+    private SourceLink findSourceLinkForPlace(UUID placeId) {
+        return candidateRepository.findFirstByPlaceId(placeId)
+                .flatMap(c -> jobRepository.findById(c.getJobId()))
+                .flatMap(j -> sourceLinkRepository.findById(j.getSourceLinkId()))
+                .orElse(null);
+    }
+
+    private Place findOrCreateFromKakao(KakaoLocalDocument doc) {
+        return placeRepository.findByKakaoPlaceId(doc.id())
+                .orElseGet(() -> {
+                    Place place = Place.create(
+                            doc.placeName(),
+                            doc.y() != null ? new BigDecimal(doc.y()) : null,
+                            doc.x() != null ? new BigDecimal(doc.x()) : null,
+                            mapKakaoCategory(doc.categoryGroupCode()),
+                            "KR",
+                            doc.id(),
+                            null
+                    );
+                    return placeRepository.save(place);
+                });
+    }
+
+    private PlaceCategory mapKakaoCategory(String code) {
+        if (code == null) return PlaceCategory.ETC;
+        return switch (code) {
+            case "FD6" -> PlaceCategory.RESTAURANT;
+            case "CE7" -> PlaceCategory.CAFE;
+            case "AD5" -> PlaceCategory.ACCOMMODATION;
+            case "AT4" -> PlaceCategory.ATTRACTION;
+            case "MT1", "CS2" -> PlaceCategory.ETC;
+            default -> PlaceCategory.ETC;
+        };
+    }
+
+    private PlaceCategory parseCategory(String value) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return PlaceCategory.valueOf(value.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    public record PlaceDetailResult(Place place, SourceLink sourceLink) {}
+
+    public record SourceLinkResult(SourceLink sourceLink, PlaceCandidate candidate) {}
+}

@@ -15,4 +15,8 @@ public interface PlaceCandidateRepository {
     Optional<PlaceCandidate> findById(UUID id);
 
     List<PlaceCandidate> findByJobId(UUID jobId);
+
+    Optional<PlaceCandidate> findFirstByPlaceId(UUID placeId);
+
+    List<PlaceCandidate> findByPlaceId(UUID placeId);
 }
