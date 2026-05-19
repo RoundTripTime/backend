@@ -21,7 +21,7 @@ import roundtrip.candidate.presentation.dto.*;
 import java.util.List;
 import java.util.UUID;
 
-@Tag(name = "Place Candidates", description = "장소 후보 -- 분석 결과 확인 및 수락/거절")
+@Tag(name = "Place Candidates", description = "장소 후보 — 분석 결과 확인 및 수락/거절")
 @RestController
 @RequiredArgsConstructor
 @SecurityRequirement(name = SwaggerConfig.BEARER_SCHEME_NAME)
@@ -33,10 +33,10 @@ public class PlaceCandidateController {
         description = "분석 완료된 잡의 장소 후보 목록을 반환한다. 원본 링크 정보(source_link)와 추출된 후보 배열을 포함한다.")
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "NOT_FOUND -- 잡 없음",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "NOT_FOUND — 잡 없음",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "UNAUTHORIZED",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @GetMapping("/jobs/{jobId}/candidates")
     public ResponseEntity<CandidateListResponse> getCandidatesByJob(@PathVariable UUID jobId) {
@@ -58,10 +58,10 @@ public class PlaceCandidateController {
         description = "status: accepted(수락) | rejected(거절) | edited(사용자가 직접 수정)")
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "변경 성공"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "VALIDATION_ERROR -- status 누락",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "NOT_FOUND -- 후보 없음",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "VALIDATION_ERROR — status 누락",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "NOT_FOUND — 후보 없음",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PatchMapping("/candidates/{candidateId}")
     public ResponseEntity<CandidateResponse> updateCandidate(
@@ -75,8 +75,8 @@ public class PlaceCandidateController {
         description = "최대 50개 후보를 한 번의 요청으로 처리한다. 부분 실패 시에도 성공 항목은 반영되고 실패 목록을 함께 반환한다.")
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "처리 완료 (부분 실패 포함)"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "VALIDATION_ERROR -- candidates 배열이 비었거나 50개 초과",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "VALIDATION_ERROR — candidates 배열이 비었거나 50개 초과",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping("/candidates/batch")
     public ResponseEntity<BatchCandidateResponse> batchUpdate(

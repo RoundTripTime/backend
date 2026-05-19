@@ -21,7 +21,7 @@ import roundtrip.common.response.SuccessCode;
 
 import java.util.UUID;
 
-@Tag(name = "Collections", description = "플레이스 -- 장소를 지역/주제별로 묶는 사용자 정의 컬렉션")
+@Tag(name = "Collections", description = "플레이스 — 장소를 지역/주제별로 묶는 사용자 정의 컬렉션")
 @RestController
 @RequiredArgsConstructor
 @SecurityRequirement(name = SwaggerConfig.BEARER_SCHEME_NAME)
@@ -33,7 +33,7 @@ public class CollectionController {
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "UNAUTHORIZED",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @GetMapping("/collections")
     public ResponseEntity<CollectionListResponse> getCollections(
@@ -46,8 +46,8 @@ public class CollectionController {
     @Operation(summary = "플레이스 생성")
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "생성 성공"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "VALIDATION_ERROR -- name 누락 또는 100자 초과",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "VALIDATION_ERROR — name 누락 또는 100자 초과",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping("/collections")
     public ResponseEntity<CollectionResponse> createCollection(
@@ -57,13 +57,13 @@ public class CollectionController {
         return ApiResponse.of(SuccessCode.COLLECTION_CREATED, CollectionResponse.from(collection));
     }
 
-    @Operation(summary = "플레이스 수정", description = "변경할 항목만 포함 -- 모든 필드 optional.")
+    @Operation(summary = "플레이스 수정", description = "변경할 항목만 포함 — 모든 필드 optional.")
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "수정 성공"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "NOT_FOUND",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "FORBIDDEN -- 타인 플레이스 수정 시도",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "FORBIDDEN — 타인 플레이스 수정 시도",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PatchMapping("/collections/{collectionId}")
     public ResponseEntity<CollectionResponse> updateCollection(
@@ -78,10 +78,10 @@ public class CollectionController {
     @Operation(summary = "플레이스 삭제", description = "is_default: true인 기본 플레이스는 삭제 불가 (403 반환).")
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "삭제 성공"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "FORBIDDEN -- 기본 플레이스 삭제 시도 또는 타인 플레이스",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "FORBIDDEN — 기본 플레이스 삭제 시도 또는 타인 플레이스",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "NOT_FOUND",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @DeleteMapping("/collections/{collectionId}")
     public ResponseEntity<Void> deleteCollection(
@@ -95,7 +95,7 @@ public class CollectionController {
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "NOT_FOUND",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @GetMapping("/collections/{collectionId}/places")
     public ResponseEntity<CollectionPlaceListResponse> getCollectionPlaces(
@@ -108,10 +108,10 @@ public class CollectionController {
     @Operation(summary = "플레이스에 장소 추가")
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "추가 성공"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "VALIDATION_ERROR -- place_id 누락",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "NOT_FOUND -- 플레이스 또는 장소 없음",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "VALIDATION_ERROR — place_id 누락",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "NOT_FOUND — 플레이스 또는 장소 없음",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping("/collections/{collectionId}/places")
     public ResponseEntity<Void> addPlace(
@@ -126,7 +126,7 @@ public class CollectionController {
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "제거 성공"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "NOT_FOUND",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @DeleteMapping("/collections/{collectionId}/places/{placeId}")
     public ResponseEntity<Void> removePlace(
@@ -141,7 +141,7 @@ public class CollectionController {
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "NOT_FOUND",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @GetMapping("/collections/{collectionId}/share")
     public ResponseEntity<CollectionShareResponse> getShareLink(

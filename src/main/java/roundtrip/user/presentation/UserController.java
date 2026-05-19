@@ -19,6 +19,7 @@ import roundtrip.common.response.SuccessCode;
 import roundtrip.user.application.UpdateProfileCommand;
 import roundtrip.user.application.UserService;
 import roundtrip.user.presentation.dto.MyProfileResponse;
+import roundtrip.user.presentation.dto.UpdateProfileRequest;
 
 @Tag(name = "Users", description = "사용자 — 내 프로필 조회/수정, 계정 삭제")
 @RestController
@@ -29,11 +30,11 @@ public class UserController {
 
     private final UserService userService;
 
-    @Operation(summary = "내 프로필 조회")
+    @Operation(summary = "내 프로필 조회", description = "인증된 사용자의 프로필 정보를 반환한다.")
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "UNAUTHORIZED",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @GetMapping
     public ResponseEntity<MyProfileResponse> getMyProfile(
@@ -46,23 +47,26 @@ public class UserController {
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "수정 성공"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "VALIDATION_ERROR",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "UNAUTHORIZED",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PatchMapping
     public ResponseEntity<MyProfileResponse> updateProfile(
             @AuthenticationPrincipal AuthenticatedUser principal,
-            @Valid @RequestBody UpdateProfileCommand command) {
+            @Valid @RequestBody UpdateProfileRequest request) {
+        UpdateProfileCommand command = new UpdateProfileCommand(
+                request.nickname(), request.avatarUrl(), request.homeRegion(),
+                request.locale(), request.mapProvider());
         return ApiResponse.of(SuccessCode.USER_PROFILE_UPDATED,
                 MyProfileResponse.from(userService.updateMyProfile(principal.userId(), command)));
     }
 
-    @Operation(summary = "계정 삭제")
+    @Operation(summary = "계정 삭제", description = "사용자 계정과 관련 데이터를 완전히 삭제한다.")
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "삭제 성공"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "UNAUTHORIZED",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @DeleteMapping
     public ResponseEntity<Void> deleteUser(@AuthenticationPrincipal AuthenticatedUser principal) {

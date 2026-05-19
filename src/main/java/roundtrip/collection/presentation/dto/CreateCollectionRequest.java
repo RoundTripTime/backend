@@ -8,6 +8,6 @@ import jakarta.validation.constraints.Size;
 public record CreateCollectionRequest(
     @Schema(description = "플레이스 이름 (최대 100자)", example = "일본")
     @NotBlank @Size(max = 100) String name,
-    @Schema(description = "이모지 아이콘", example = "null", nullable = true)
+    @Schema(description = "이모지 아이콘", nullable = true)
     String icon
 ) {}

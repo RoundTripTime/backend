@@ -14,7 +14,7 @@ public record CollectionItem(
     String name,
     @Schema(description = "기본 플레이스 여부. true이면 삭제 불가", example = "false")
     boolean isDefault,
-    @Schema(description = "이모지 아이콘. 없으면 null", example = "null", nullable = true)
+    @Schema(description = "이모지 아이콘. 없으면 null", nullable = true)
     String icon,
     @Schema(description = "포함된 장소 수", example = "8")
     int placeCount,

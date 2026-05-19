@@ -19,7 +19,7 @@ import roundtrip.extract.presentation.dto.ExtractionJobResponse;
 
 import java.util.UUID;
 
-@Tag(name = "Extraction Jobs", description = "분석 잡 -- 링크 분석 상태 조회")
+@Tag(name = "Extraction Jobs", description = "분석 잡 — 링크 분석 상태 조회")
 @RestController
 @RequestMapping("/jobs")
 @RequiredArgsConstructor
@@ -32,10 +32,10 @@ public class ExtractionJobController {
         description = "링크 분석 잡의 현재 상태를 반환한다. 상태 전이: pending -> processing -> done | failed")
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "NOT_FOUND -- 잡 없음",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "NOT_FOUND — 잡 없음",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "UNAUTHORIZED",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @GetMapping("/{jobId}")
     public ResponseEntity<ExtractionJobResponse> getJob(@PathVariable UUID jobId) {

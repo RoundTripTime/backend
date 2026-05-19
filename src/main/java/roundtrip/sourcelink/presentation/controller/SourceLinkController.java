@@ -24,7 +24,7 @@ import roundtrip.sourcelink.presentation.dto.*;
 import java.util.List;
 import java.util.UUID;
 
-@Tag(name = "Source Links", description = "링크 수집 -- 공유받은 URL 제출 및 목록 조회")
+@Tag(name = "Source Links", description = "링크 수집 — 공유받은 URL 제출 및 목록 조회")
 @RestController
 @RequestMapping("/source-links")
 @RequiredArgsConstructor
@@ -37,12 +37,12 @@ public class SourceLinkController {
         description = "공유하기로 수신된 URL을 제출하고 분석 잡을 생성한다. 반환된 job_id로 `/jobs/:job_id`를 폴링하여 상태를 확인한다.")
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "제출 성공"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "VALIDATION_ERROR -- url 누락",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "DUPLICATE_LINK -- 이미 처리 중인 동일 링크",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "422", description = "UNSUPPORTED_PLATFORM -- 지원하지 않는 URL 플랫폼",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "VALIDATION_ERROR — url 누락",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "DUPLICATE_LINK — 이미 처리 중인 동일 링크",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "422", description = "UNSUPPORTED_PLATFORM — 지원하지 않는 URL 플랫폼",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping
     public ResponseEntity<SubmitSourceLinkResponse> submit(
@@ -56,7 +56,7 @@ public class SourceLinkController {
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "UNAUTHORIZED",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @GetMapping
     public ResponseEntity<SourceLinkListResponse> list(
