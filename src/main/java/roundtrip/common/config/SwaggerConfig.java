@@ -2,6 +2,7 @@ package roundtrip.common.config;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,6 +22,10 @@ public class SwaggerConfig {
             .name("Authorization");
 
         return new OpenAPI()
+            .info(new Info()
+                .title("RoundTrip API")
+                .description("RoundTrip 여행 플랫폼 REST API. 비로그인 허용 엔드포인트는 SecurityRequirements 없음으로 표기.")
+                .version("v1"))
             .components(new Components().addSecuritySchemes(BEARER_SCHEME_NAME, bearer));
     }
 }
