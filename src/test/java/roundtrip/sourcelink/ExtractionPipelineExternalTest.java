@@ -167,9 +167,12 @@ class ExtractionPipelineExternalTest {
             candResult.getResponse().getContentAsString(), Map.class);
 
         @SuppressWarnings("unchecked")
-        List<?> candidates = (List<?>) candBody.get("candidates");
+        List<Map<String, Object>> candidates = (List<Map<String, Object>>) candBody.get("candidates");
         System.out.printf("[ExternalTest] url=%s, 추출 장소 수=%d (기대값=%d)%n",
             url, candidates.size(), expectedCount);
+        candidates.forEach(c -> System.out.printf("  - [%s] %s (confidence=%.2f, requiresConfirmation=%s)%n",
+            c.get("category"), c.get("candidate_name"), ((Number) c.get("confidence_score")).doubleValue(),
+            c.get("requires_confirmation")));
 
         assertThat(candidates)
             .as("url=%s 에서 %d개 장소가 추출되어야 합니다", url, expectedCount)

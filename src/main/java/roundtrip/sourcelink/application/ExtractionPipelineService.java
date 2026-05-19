@@ -53,7 +53,7 @@ public class ExtractionPipelineService {
             String metadataContent = buildMetadataContent(metadata);
             List<GeminiPlaceParseResult> phase1Result = geminiClient.parsePlaces(metadataContent);
 
-            if (!phase1Result.isEmpty() && avgConfidence(phase1Result) > 0.7) {
+            if (!phase1Result.isEmpty()) {
                 List<PlaceCandidate> candidates = normalizePlaces(phase1Result, job);
                 completeJob(job, sourceLink, candidates.size());
             } else {
@@ -69,7 +69,7 @@ public class ExtractionPipelineService {
                 String fullContent = buildFullContent(metadata, extractResult);
                 List<GeminiPlaceParseResult> phase2Result = geminiClient.parsePlaces(fullContent);
 
-                if (!phase2Result.isEmpty() && phase2Result.stream().anyMatch(r -> r.confidence() > 0.5)) {
+                if (!phase2Result.isEmpty()) {
                     List<PlaceCandidate> candidates = normalizePlaces(phase2Result, job);
                     completeJob(job, sourceLink, candidates.size());
                 } else {
@@ -134,13 +134,6 @@ public class ExtractionPipelineService {
             sb.append("추출 내용: ").append(extractResult.data().toString());
         }
         return sb.toString();
-    }
-
-    private double avgConfidence(List<GeminiPlaceParseResult> results) {
-        return results.stream()
-                .mapToDouble(GeminiPlaceParseResult::confidence)
-                .average()
-                .orElse(0.0);
     }
 
     // 지도 정규화 (Kakao/Google Maps API) — 추후 구현 예정
