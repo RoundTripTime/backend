@@ -26,8 +26,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class PlaceService {
 
-    private static final int COLDSTART_THRESHOLD = 3;
-
     private final PlaceRepository placeRepository;
     private final PlaceCandidateRepository candidateRepository;
     private final ExtractionJobRepository jobRepository;
@@ -62,13 +60,23 @@ public class PlaceService {
             UUID userId, int limit, String categoryStr, String countryCode) {
 
         PlaceCategory category = parseCategory(categoryStr);
-        List<PlaceRepository.DiscoverRow> results =
+        List<PlaceRepository.DiscoverRow> personalized =
                 placeRepository.findDiscoverPlaces(userId, limit, category, countryCode);
 
-        if (results.size() < COLDSTART_THRESHOLD) {
-            return placeRepository.findDiscoverPlacesColdStart(userId, limit, category, countryCode);
+        if (personalized.size() >= limit) {
+            return personalized;
         }
-        return results;
+
+        int remaining = limit - personalized.size();
+        List<UUID> alreadyIncluded = personalized.stream()
+                .map(PlaceRepository.DiscoverRow::id)
+                .toList();
+        List<PlaceRepository.DiscoverRow> coldstart =
+                placeRepository.findDiscoverPlacesColdStart(userId, remaining, category, countryCode, alreadyIncluded);
+
+        List<PlaceRepository.DiscoverRow> merged = new java.util.ArrayList<>(personalized);
+        merged.addAll(coldstart);
+        return merged;
     }
 
     @Transactional(readOnly = true)

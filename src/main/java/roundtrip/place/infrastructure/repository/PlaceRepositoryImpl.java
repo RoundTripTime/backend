@@ -119,7 +119,13 @@ public class PlaceRepositoryImpl implements PlaceRepository {
 
     @Override
     @SuppressWarnings("unchecked")
-    public List<DiscoverRow> findDiscoverPlacesColdStart(UUID userId, int limit, PlaceCategory category, String countryCode) {
+    public List<DiscoverRow> findDiscoverPlacesColdStart(UUID userId, int limit, PlaceCategory category, String countryCode, List<UUID> excludeIds) {
+        List<String> excludeStrings = excludeIds.stream().map(UUID::toString).toList();
+        // IN절에 빈 리스트는 SQL 오류 → 절대 존재하지 않는 더미값으로 대체
+        List<String> safeExclude = excludeStrings.isEmpty()
+                ? List.of("00000000-0000-0000-0000-000000000000")
+                : excludeStrings;
+
         String sql = """
                 WITH excluded AS (
                     SELECT cp.place_id
@@ -132,6 +138,7 @@ public class PlaceRepositoryImpl implements PlaceRepository {
                        0.0 AS similarity_score
                 FROM places p
                 WHERE p.id NOT IN (SELECT place_id FROM excluded)
+                  AND p.id::text NOT IN (:excludeIdList)
                   AND (CAST(:category AS VARCHAR) IS NULL OR p.category = CAST(:category AS VARCHAR))
                   AND (CAST(:countryCode AS VARCHAR) IS NULL OR p.country_code = CAST(:countryCode AS VARCHAR))
                 ORDER BY p.created_at DESC
@@ -143,6 +150,7 @@ public class PlaceRepositoryImpl implements PlaceRepository {
                 .setParameter("limit", limit)
                 .setParameter("category", category != null ? category.name() : null)
                 .setParameter("countryCode", countryCode)
+                .setParameter("excludeIdList", safeExclude)
                 .getResultList();
 
         return toDiscoverRows(rows);

@@ -21,7 +21,7 @@ public interface PlaceRepository {
 
     List<DiscoverRow> findDiscoverPlaces(UUID userId, int limit, PlaceCategory category, String countryCode);
 
-    List<DiscoverRow> findDiscoverPlacesColdStart(UUID userId, int limit, PlaceCategory category, String countryCode);
+    List<DiscoverRow> findDiscoverPlacesColdStart(UUID userId, int limit, PlaceCategory category, String countryCode, List<UUID> excludeIds);
 
     record PlaceSimilarRow(
             UUID id, String canonicalName, PlaceCategory category,
