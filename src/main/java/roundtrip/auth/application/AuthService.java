@@ -10,6 +10,7 @@ import roundtrip.auth.domain.TokenType;
 import roundtrip.auth.infrastructure.jwt.JwtTokenProvider;
 import roundtrip.auth.infrastructure.refresh.RefreshTokenStore;
 import roundtrip.auth.infrastructure.social.SocialIdTokenVerifierRegistry;
+import roundtrip.collection.application.CollectionService;
 import roundtrip.common.exception.BusinessException;
 import roundtrip.common.exception.ErrorCode;
 import roundtrip.user.domain.entity.SocialProvider;
@@ -37,6 +38,7 @@ public class AuthService {
     private final NicknameGenerator nicknameGenerator;
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenStore refreshTokenStore;
+    private final CollectionService collectionService;
 
     @Transactional
     public SignInResult signInWithSocial(SocialProvider provider, String idToken, Locale clientLocale) {
@@ -54,6 +56,7 @@ public class AuthService {
         } else {
             user = registerNewUser(identity, clientLocale);
             socialAccountRepository.save(UserSocialAccount.link(user.getId(), provider, identity.socialId()));
+            collectionService.createDefaultCollection(user.getId());
             isNewUser = true;
         }
 

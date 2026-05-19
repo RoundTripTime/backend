@@ -42,9 +42,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(properties = {
-    "jwt.secret=integration-test-secret-must-be-at-least-thirty-two-bytes-long-1234"
-})
+@SpringBootTest
 @Testcontainers
 class UserIntegrationTest {
 

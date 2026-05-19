@@ -18,6 +18,7 @@ import roundtrip.user.domain.entity.SocialProvider;
 import roundtrip.user.domain.entity.User;
 import roundtrip.user.domain.entity.UserSocialAccount;
 import roundtrip.user.domain.repository.UserRepository;
+import roundtrip.collection.application.CollectionService;
 import roundtrip.user.domain.repository.UserSocialAccountRepository;
 import roundtrip.user.domain.service.NicknameGenerator;
 import roundtrip.user.domain.vo.Nickname;
@@ -42,6 +43,7 @@ class AuthServiceTest {
     @Mock NicknameGenerator nicknameGenerator;
     @Mock JwtTokenProvider jwtTokenProvider;
     @Mock RefreshTokenStore refreshTokenStore;
+    @Mock CollectionService collectionService;
 
     @InjectMocks AuthService service;
 

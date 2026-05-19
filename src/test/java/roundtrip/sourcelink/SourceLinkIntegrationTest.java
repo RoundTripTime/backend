@@ -43,9 +43,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(properties = {
-    "jwt.secret=integration-test-secret-must-be-at-least-thirty-two-bytes-long-1234"
-})
+@SpringBootTest
 @Testcontainers
 class SourceLinkIntegrationTest {
 

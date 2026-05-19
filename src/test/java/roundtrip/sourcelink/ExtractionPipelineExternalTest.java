@@ -45,9 +45,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * 실행: ./gradlew test -Dgroups=external
  */
 @Tag("external")
-@SpringBootTest(properties = {
-    "jwt.secret=integration-test-secret-must-be-at-least-thirty-two-bytes-long-1234"
-})
+@SpringBootTest
 @Testcontainers
 class ExtractionPipelineExternalTest {
 
