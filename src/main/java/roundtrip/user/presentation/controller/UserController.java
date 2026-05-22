@@ -1,4 +1,4 @@
-package roundtrip.user.presentation;
+package roundtrip.user.presentation.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
