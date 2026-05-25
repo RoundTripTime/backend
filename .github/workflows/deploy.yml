@@ -88,10 +88,16 @@ jobs:
           EOF
           ENVEOF
 
-      - name: Deploy JAR to EC2
+      - name: Deploy JAR and script to EC2
         run: |
           scp -i ~/.ssh/deploy_key ./artifact/roundtrip.jar ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/tmp/roundtrip-new.jar
-          ssh -i ~/.ssh/deploy_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} 'sudo mv /tmp/roundtrip-new.jar /opt/roundtrip/roundtrip-new.jar && sudo chown roundtrip:roundtrip /opt/roundtrip/roundtrip-new.jar'
+          scp -i ~/.ssh/deploy_key ./scripts/deploy.sh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/tmp/deploy.sh
+          ssh -i ~/.ssh/deploy_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'DEPLOYEOF'
+          sudo mv /tmp/roundtrip-new.jar /opt/roundtrip/roundtrip-new.jar
+          sudo mv /tmp/deploy.sh /opt/roundtrip/deploy.sh
+          sudo chown roundtrip:roundtrip /opt/roundtrip/roundtrip-new.jar /opt/roundtrip/deploy.sh
+          sudo chmod +x /opt/roundtrip/deploy.sh
+          DEPLOYEOF
 
       - name: Run deploy script
         run: |
