@@ -24,6 +24,8 @@ public enum ErrorCode {
 
     // 사용자
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."),
+    AVATAR_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "프로필 이미지 업로드에 실패했습니다."),
+    INVALID_AVATAR_FILE(HttpStatus.BAD_REQUEST, "유효하지 않은 이미지 파일입니다."),
     LINKED_USER_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, "연결된 사용자가 존재하지 않습니다."),
     SELF_FOLLOW(HttpStatus.FORBIDDEN, "본인을 팔로우할 수 없습니다."),
     ALREADY_FOLLOWING(HttpStatus.CONFLICT, "이미 팔로우 중인 사용자입니다."),

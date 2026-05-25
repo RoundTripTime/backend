@@ -8,9 +8,11 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import roundtrip.auth.domain.AuthenticatedUser;
 import roundtrip.common.config.SwaggerConfig;
 import roundtrip.common.exception.ErrorResponse;
@@ -60,6 +62,22 @@ public class UserController {
                 request.locale(), request.mapProvider());
         return ApiResponse.of(SuccessCode.USER_PROFILE_UPDATED,
                 MyProfileResponse.from(userService.updateMyProfile(principal.userId(), command)));
+    }
+
+    @Operation(summary = "프로필 이미지 변경", description = "이미지 파일을 업로드하여 프로필 이미지를 변경한다. (JPEG, PNG, WebP / 최대 5MB)")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "변경 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "INVALID_AVATAR_FILE",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "UNAUTHORIZED",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @PatchMapping(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<MyProfileResponse> updateAvatar(
+            @AuthenticationPrincipal AuthenticatedUser principal,
+            @RequestParam("file") MultipartFile file) {
+        return ApiResponse.of(SuccessCode.USER_AVATAR_UPDATED,
+                MyProfileResponse.from(userService.updateAvatar(principal.userId(), file)));
     }
 
     @Operation(summary = "계정 삭제", description = "사용자 계정과 관련 데이터를 완전히 삭제한다.")
