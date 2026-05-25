@@ -20,6 +20,7 @@ public enum SuccessCode {
     // 사용자
     USER_PROFILE_FETCHED(HttpStatus.OK, "내 프로필 조회에 성공했습니다."),
     USER_PROFILE_UPDATED(HttpStatus.OK, "프로필 수정에 성공했습니다."),
+    USER_AVATAR_UPDATED(HttpStatus.OK, "프로필 이미지 변경에 성공했습니다."),
     USER_ACCOUNT_DELETED(HttpStatus.NO_CONTENT, "계정 삭제에 성공했습니다."),
     USER_PUBLIC_PROFILE_FETCHED(HttpStatus.OK, "사용자 프로필 조회에 성공했습니다."),
     USER_FOLLOW_CREATED(HttpStatus.CREATED, "팔로우에 성공했습니다."),

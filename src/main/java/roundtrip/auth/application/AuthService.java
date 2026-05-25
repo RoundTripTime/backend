@@ -19,6 +19,7 @@ import roundtrip.user.domain.entity.UserSocialAccount;
 import roundtrip.user.domain.repository.UserRepository;
 import roundtrip.user.domain.repository.UserSocialAccountRepository;
 import roundtrip.user.domain.service.NicknameGenerator;
+import roundtrip.user.domain.service.RoboHashAvatar;
 import roundtrip.user.domain.vo.Email;
 import roundtrip.user.domain.vo.Nickname;
 
@@ -93,8 +94,9 @@ public class AuthService {
         String localeTag = resolveLocale(clientLocale);
         Email email = identity.email() == null ? null : new Email(identity.email());
         Nickname nickname = new Nickname(nicknameGenerator.generate());
+        String avatarUrl = RoboHashAvatar.from(nickname.value());
 
-        User user = User.register(email, nickname, null, localeTag, UNKNOWN_REGION);
+        User user = User.register(email, nickname, avatarUrl, localeTag, UNKNOWN_REGION);
         return userRepository.save(user);
     }
 

@@ -31,6 +31,7 @@ public class PlaceService {
     private final ExtractionJobRepository jobRepository;
     private final SourceLinkRepository sourceLinkRepository;
     private final KakaoLocalClient kakaoLocalClient;
+    private final ThumbnailFetcher thumbnailFetcher;
 
     @Transactional(readOnly = true)
     public PlaceDetailResult getPlace(UUID placeId) {
@@ -116,7 +117,9 @@ public class PlaceService {
                             doc.id(),
                             null
                     );
-                    return placeRepository.save(place);
+                    Place saved = placeRepository.save(place);
+                    thumbnailFetcher.fetchAndUpdate(saved.getId());
+                    return saved;
                 });
     }
 

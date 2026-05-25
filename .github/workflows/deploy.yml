@@ -85,6 +85,11 @@ jobs:
           GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
           KAKAO_LOCAL_API_KEY=${{ secrets.KAKAO_LOCAL_API_KEY }}
           APP_SHARE_BASE_URL=${{ secrets.APP_SHARE_BASE_URL }}
+          GOOGLE_PLACES_API_KEY=${{ secrets.GOOGLE_PLACES_API_KEY }}
+          AWS_S3_ACCESS_KEY=${{ secrets.AWS_S3_ACCESS_KEY }}
+          AWS_S3_SECRET_KEY=${{ secrets.AWS_S3_SECRET_KEY }}
+          AWS_S3_REGION=${{ secrets.AWS_S3_REGION }}
+          AWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }}
           EOF
           ENVEOF
 

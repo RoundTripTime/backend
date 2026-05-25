@@ -42,6 +42,10 @@ dependencies {
 	// --- Push (Firebase FCM + APNs) ---
 	implementation("com.google.firebase:firebase-admin:9.8.0")
 
+	// --- AWS S3 ---
+	implementation(platform("software.amazon.awssdk:bom:2.31.58"))
+	implementation("software.amazon.awssdk:s3")
+
 	// --- API Docs ---
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3")
 
