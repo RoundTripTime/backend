@@ -21,6 +21,7 @@ import roundtrip.user.domain.repository.UserRepository;
 import roundtrip.collection.application.CollectionService;
 import roundtrip.user.domain.repository.UserSocialAccountRepository;
 import roundtrip.user.domain.service.NicknameGenerator;
+import roundtrip.user.domain.service.RoboHashAvatar;
 import roundtrip.user.domain.vo.Nickname;
 
 import java.time.Duration;
@@ -69,6 +70,7 @@ class AuthServiceTest {
 
         assertThat(result.isNewUser()).isTrue();
         assertThat(result.tokens()).isEqualTo(tokens);
+        assertThat(result.user().getAvatarUrl()).isEqualTo(RoboHashAvatar.from("이상한 여우 0001"));
         verify(userRepository).save(any(User.class));
         verify(socialAccountRepository).save(any(UserSocialAccount.class));
         verify(refreshTokenStore).save(eq(newUserId), eq("new-jti"), any());

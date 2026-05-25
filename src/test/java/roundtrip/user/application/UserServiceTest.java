@@ -6,26 +6,32 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
+import roundtrip.common.exception.BusinessException;
 import roundtrip.user.domain.entity.MapProvider;
 import roundtrip.user.domain.entity.User;
 import roundtrip.user.domain.exception.UserNotFoundException;
 import roundtrip.user.domain.repository.UserRepository;
+import roundtrip.user.domain.service.RoboHashAvatar;
 import roundtrip.user.domain.vo.Nickname;
+import roundtrip.user.infrastructure.s3.AvatarStorage;
 
+import java.io.IOException;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
 
     @Mock UserRepository userRepository;
+    @Mock AvatarStorage avatarStorage;
 
     @InjectMocks UserService service;
 
@@ -34,6 +40,7 @@ class UserServiceTest {
 
     @BeforeEach
     void setUp() {
+        ReflectionTestUtils.setField(service, "avatarStorage", avatarStorage);
         userId = UUID.randomUUID();
         user = User.register(null, new Nickname("초기닉네임"), null, "ko-KR", "South Korea");
         ReflectionTestUtils.setField(user, "id", userId);
@@ -108,6 +115,86 @@ class UserServiceTest {
 
         assertThatThrownBy(() -> service.updateMyProfile(userId, cmd))
             .isInstanceOf(UserNotFoundException.class);
+    }
+
+    @Test
+    void updateMyProfile_nicknameChangeWithRoboHash_updatesAvatar() {
+        String roboUrl = RoboHashAvatar.from("초기닉네임");
+        user.changeAvatar(roboUrl);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        UpdateProfileCommand cmd = new UpdateProfileCommand(
+                "새닉네임", null, null, null, null);
+
+        User result = service.updateMyProfile(userId, cmd);
+
+        assertThat(result.getNickname().value()).isEqualTo("새닉네임");
+        assertThat(RoboHashAvatar.isRoboHash(result.getAvatarUrl())).isTrue();
+        assertThat(result.getAvatarUrl()).isEqualTo(RoboHashAvatar.from("새닉네임"));
+    }
+
+    @Test
+    void updateMyProfile_nicknameChangeWithS3Avatar_doesNotChangeAvatar() {
+        String s3Url = "https://bucket.s3.ap-northeast-2.amazonaws.com/avatars/img.jpg";
+        user.changeAvatar(s3Url);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        UpdateProfileCommand cmd = new UpdateProfileCommand(
+                "새닉네임", null, null, null, null);
+
+        User result = service.updateMyProfile(userId, cmd);
+
+        assertThat(result.getAvatarUrl()).isEqualTo(s3Url);
+    }
+
+    @Test
+    void updateAvatar_validFile_uploadsAndSetsUrl() throws IOException {
+        user.changeAvatar(RoboHashAvatar.from("초기닉네임"));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(avatarStorage.upload(eq(userId), any())).thenReturn("https://bucket.s3.amazonaws.com/avatars/new.jpg");
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "photo.jpg", "image/jpeg", new byte[]{1, 2, 3});
+
+        User result = service.updateAvatar(userId, file);
+
+        assertThat(result.getAvatarUrl()).isEqualTo("https://bucket.s3.amazonaws.com/avatars/new.jpg");
+        verify(avatarStorage, never()).delete(any()); // RoboHash URL��므로 S3 삭제 안 함
+    }
+
+    @Test
+    void updateAvatar_existingS3Avatar_deletesOldAndUploadsNew() throws IOException {
+        String oldUrl = "https://bucket.s3.ap-northeast-2.amazonaws.com/avatars/old.jpg";
+        user.changeAvatar(oldUrl);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(avatarStorage.upload(eq(userId), any())).thenReturn("https://bucket.s3.amazonaws.com/avatars/new.jpg");
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "photo.png", "image/png", new byte[]{1, 2, 3});
+
+        service.updateAvatar(userId, file);
+
+        verify(avatarStorage).delete(oldUrl);
+    }
+
+    @Test
+    void updateAvatar_invalidContentType_throws() {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "doc.pdf", "application/pdf", new byte[]{1, 2, 3});
+
+        assertThatThrownBy(() -> service.updateAvatar(userId, file))
+                .isInstanceOf(BusinessException.class)
+                .extracting(ex -> ((BusinessException) ex).getCode())
+                .isEqualTo("INVALID_AVATAR_FILE");
+    }
+
+    @Test
+    void updateAvatar_emptyFile_throws() {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "empty.jpg", "image/jpeg", new byte[0]);
+
+        assertThatThrownBy(() -> service.updateAvatar(userId, file))
+                .isInstanceOf(BusinessException.class)
+                .extracting(ex -> ((BusinessException) ex).getCode())
+                .isEqualTo("INVALID_AVATAR_FILE");
     }
 
     @Test
