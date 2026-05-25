@@ -77,5 +77,10 @@ kakao:
     api-key: ${KAKAO_LOCAL_API_KEY:}
     base-url: https://dapi.kakao.com
 
+google:
+  places:
+    api-key: ${GOOGLE_PLACES_API_KEY:}
+    base-url: https://places.googleapis.com
+
 app:
   share-base-url: ${APP_SHARE_BASE_URL:https://app.example.com/share/collections/}
