@@ -67,7 +67,7 @@ jobs:
       - name: Create .env on EC2
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'ENVEOF'
-          cat > /opt/roundtrip/.env << EOF
+          sudo tee /opt/roundtrip/.env > /dev/null << EOF
           SPRING_PROFILES_ACTIVE=prod
           DB_HOST=${{ secrets.DB_HOST }}
           DB_PORT=${{ secrets.DB_PORT }}
@@ -90,8 +90,9 @@ jobs:
 
       - name: Deploy JAR to EC2
         run: |
-          scp -i ~/.ssh/deploy_key ./artifact/roundtrip.jar ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/opt/roundtrip/roundtrip-new.jar
+          scp -i ~/.ssh/deploy_key ./artifact/roundtrip.jar ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/tmp/roundtrip-new.jar
+          ssh -i ~/.ssh/deploy_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} 'sudo mv /tmp/roundtrip-new.jar /opt/roundtrip/roundtrip-new.jar && sudo chown roundtrip:roundtrip /opt/roundtrip/roundtrip-new.jar'
 
       - name: Run deploy script
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} 'bash /opt/roundtrip/deploy.sh'
+          ssh -i ~/.ssh/deploy_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} 'sudo bash /opt/roundtrip/deploy.sh'
