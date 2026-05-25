@@ -92,11 +92,15 @@ jobs:
         run: |
           scp -i ~/.ssh/deploy_key ./artifact/roundtrip.jar ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/tmp/roundtrip-new.jar
           scp -i ~/.ssh/deploy_key ./scripts/deploy.sh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/tmp/deploy.sh
+          scp -i ~/.ssh/deploy_key ./scripts/roundtrip.service ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/tmp/roundtrip.service
           ssh -i ~/.ssh/deploy_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'DEPLOYEOF'
           sudo mv /tmp/roundtrip-new.jar /opt/roundtrip/roundtrip-new.jar
           sudo mv /tmp/deploy.sh /opt/roundtrip/deploy.sh
           sudo chown roundtrip:roundtrip /opt/roundtrip/roundtrip-new.jar /opt/roundtrip/deploy.sh
           sudo chmod +x /opt/roundtrip/deploy.sh
+          sudo mv /tmp/roundtrip.service /etc/systemd/system/roundtrip.service
+          sudo systemctl daemon-reload
+          sudo systemctl enable roundtrip
           DEPLOYEOF
 
       - name: Run deploy script
