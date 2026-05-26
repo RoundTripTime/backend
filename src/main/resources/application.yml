@@ -89,9 +89,5 @@ google:
     api-key: ${GOOGLE_PLACES_API_KEY:}
     base-url: https://places.googleapis.com
 
-myrealtrip:
-  api-key: ${MYREALTRIP_API_KEY:}
-  base-url: https://partner-ext-api.myrealtrip.com
-
 app:
   share-base-url: ${APP_SHARE_BASE_URL:https://app.example.com/share/collections/}
