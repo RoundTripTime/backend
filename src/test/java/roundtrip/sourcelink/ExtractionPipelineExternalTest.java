@@ -39,8 +39,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * 실제 외부 API(Supadata, Gemini)를 호출하는 파이프라인 통합 테스트.
- * .env 파일에 SUPADATA_API_KEY, GEMINI_API_KEY가 설정되어 있어야 합니다.
+ * 실제 외부 API(Supadata, FeatherlessAI, Kakao)를 호출하는 파이프라인 통합 테스트.
+ * .env 파일에 SUPADATA_API_KEY, FEATHERLESSAI_API_KEY, KAKAO_REST_API_KEY가 설정되어 있어야 합니다.
  *
  * 실행: ./gradlew test -Dgroups=external
  */

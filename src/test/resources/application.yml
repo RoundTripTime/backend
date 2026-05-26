@@ -47,11 +47,11 @@ supadata:
   api-key: ${SUPADATA_API_KEY:}
   base-url: https://api.supadata.ai/v1
 
-gemini:
-  api-key: ${GEMINI_API_KEY:}
-  model: gemini-3.1-flash-lite
+featherlessai:
+  api-key: ${FEATHERLESSAI_API_KEY:}
+  model: Qwen/Qwen3-235B-A22B
 
 kakao:
   local:
-    api-key: ${KAKAO_LOCAL_API_KEY:}
+    api-key: ${KAKAO_REST_API_KEY:}
     base-url: https://dapi.kakao.com
