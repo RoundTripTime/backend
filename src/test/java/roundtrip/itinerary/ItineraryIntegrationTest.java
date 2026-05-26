@@ -24,6 +24,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import roundtrip.auth.domain.SocialIdentity;
 import roundtrip.auth.infrastructure.social.SocialIdTokenVerifierRegistry;
+import roundtrip.itinerary.infrastructure.myrealtrip.MyRealTripClient;
 import roundtrip.user.domain.entity.SocialProvider;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -32,7 +33,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -63,6 +64,9 @@ class ItineraryIntegrationTest {
 
     @MockitoBean
     SocialIdTokenVerifierRegistry verifierRegistry;
+
+    @MockitoBean
+    MyRealTripClient myRealTripClient;
 
     @Autowired WebApplicationContext context;
     @Autowired JsonMapper objectMapper;
@@ -416,39 +420,80 @@ class ItineraryIntegrationTest {
     // ──────────────────── GET /itineraries/:id/ota-links ────────────────────
 
     @Test
-    void getOtaLinks_accommodation_returns200() throws Exception {
+    void getOtaLinks_accommodation_withMyRealTrip_returns200() throws Exception {
         String token = signIn();
         UUID itineraryId = createItinerary(token);
+
+        // 숙소 검색 mock
+        when(myRealTripClient.searchAccommodation(eq("도쿄"), anyString(), anyString(), anyInt()))
+            .thenReturn(new MyRealTripClient.AccommodationSearchResponse(
+                List.of(new MyRealTripClient.AccommodationItem(
+                    1484076L, "롯데호텔", 346690L, 398000L, 5, "4.7", 1783, null)),
+                1, 0, 5));
+        when(myRealTripClient.createMyLink(eq("https://www.myrealtrip.com/offers/1484076")))
+            .thenReturn(new MyRealTripClient.MyLinkResponse("https://myrealt.rip/acc123", 1234567L));
 
         mockMvc.perform(get("/itineraries/" + itineraryId + "/ota-links")
                 .header("Authorization", "Bearer " + token)
                 .param("type", "accommodation"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.ota_url").isNotEmpty());
+            .andExpect(jsonPath("$.ota_url").value("https://myrealt.rip/acc123"));
     }
 
     @Test
-    void getOtaLinks_flight_returns200() throws Exception {
+    void getOtaLinks_flight_withMyRealTrip_returns200() throws Exception {
         String token = signIn();
         UUID itineraryId = createItinerary(token);
+
+        // 항공 랜딩 URL mock
+        when(myRealTripClient.createFlightLandingUrl(eq("ICN"), eq("NRT"), eq("RT"), anyString(), anyString(), anyInt()))
+            .thenReturn("https://flights.myrealtrip.com/air/agent/b2c/AIR/ICN/NRT/offers.k1?depdt=2024-12-20");
+        when(myRealTripClient.createMyLink(startsWith("https://flights.myrealtrip.com/")))
+            .thenReturn(new MyRealTripClient.MyLinkResponse("https://myrealt.rip/flt456", 2345678L));
 
         mockMvc.perform(get("/itineraries/" + itineraryId + "/ota-links")
                 .header("Authorization", "Bearer " + token)
                 .param("type", "flight"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.ota_url").isNotEmpty());
+            .andExpect(jsonPath("$.ota_url").value("https://myrealt.rip/flt456"));
     }
 
     @Test
-    void getOtaLinks_activity_returns200() throws Exception {
+    void getOtaLinks_activity_withMyRealTrip_returns200() throws Exception {
         String token = signIn();
         UUID itineraryId = createItinerary(token);
+
+        // 투어/티켓 검색 mock
+        when(myRealTripClient.searchTna(eq("도쿄"), eq("도쿄")))
+            .thenReturn(new MyRealTripClient.TnaSearchResponse(
+                List.of(new MyRealTripClient.TnaItem(
+                    "5869248", "도쿄 타워 입장권", "도쿄 · 티켓", 12657L, "12,657원",
+                    "티켓", 4.83, 1250, null,
+                    "https://experiences.myrealtrip.com/products/5869248", null, List.of())),
+                1, 1, 5, false));
+        when(myRealTripClient.createMyLink(eq("https://experiences.myrealtrip.com/products/5869248")))
+            .thenReturn(new MyRealTripClient.MyLinkResponse("https://myrealt.rip/act789", 3456789L));
 
         mockMvc.perform(get("/itineraries/" + itineraryId + "/ota-links")
                 .header("Authorization", "Bearer " + token)
                 .param("type", "activity"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.ota_url").isNotEmpty());
+            .andExpect(jsonPath("$.ota_url").value("https://myrealt.rip/act789"));
+    }
+
+    @Test
+    void getOtaLinks_accommodation_apiFails_returnsFallbackUrl() throws Exception {
+        String token = signIn();
+        UUID itineraryId = createItinerary(token);
+
+        when(myRealTripClient.searchAccommodation(anyString(), anyString(), anyString(), anyInt()))
+            .thenThrow(new RuntimeException("API 오류"));
+
+        mockMvc.perform(get("/itineraries/" + itineraryId + "/ota-links")
+                .header("Authorization", "Bearer " + token)
+                .param("type", "accommodation"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.ota_url").value("https://www.myrealtrip.com/accommodations?keyword=도쿄"));
     }
 
     @Test

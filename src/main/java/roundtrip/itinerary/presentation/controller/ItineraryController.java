@@ -220,7 +220,7 @@ public class ItineraryController {
             @AuthenticationPrincipal AuthenticatedUser user,
             @PathVariable UUID itineraryId,
             @RequestParam String type) {
-        String otaUrl = itineraryService.generateOtaLink(user.userId(), itineraryId, type);
-        return ApiResponse.of(SuccessCode.ITINERARY_OTA_LINK_GENERATED, new OtaLinkResponse(otaUrl));
+        var result = itineraryService.generateOtaLink(user.userId(), itineraryId, type);
+        return ApiResponse.of(SuccessCode.ITINERARY_OTA_LINK_GENERATED, new OtaLinkResponse(result.otaUrl()));
     }
 }
