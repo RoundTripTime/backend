@@ -1,5 +1,8 @@
 package roundtrip.common.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import io.swagger.v3.core.jackson.ModelResolver;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
@@ -11,6 +14,13 @@ import org.springframework.context.annotation.Configuration;
 public class SwaggerConfig {
 
     public static final String BEARER_SCHEME_NAME = "bearer-jwt";
+
+    @Bean
+    public ModelResolver modelResolver() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+        return new ModelResolver(mapper);
+    }
 
     @Bean
     public OpenAPI openAPI() {

@@ -28,7 +28,9 @@ import roundtrip.auth.infrastructure.social.SocialIdTokenVerifierRegistry;
 import roundtrip.user.domain.entity.SocialProvider;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.Map;
 import java.util.UUID;
 
@@ -245,9 +247,10 @@ class CreditIntegrationTest {
     void startAd_dailyLimitReached_returns422() throws Exception {
         String token = signIn();
         UUID userId = currentUserId();
-        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime noonKst = LocalDate.now(ZoneId.of("Asia/Seoul"))
+            .atTime(12, 0).atZone(ZoneId.of("Asia/Seoul")).toOffsetDateTime();
         for (int i = 0; i < 20; i++) {
-            insertCompletedAdSession(userId, now.minusMinutes(i));
+            insertCompletedAdSession(userId, noonKst.minusMinutes(i));
         }
 
         mockMvc.perform(post("/credits/ads/start")
@@ -284,9 +287,10 @@ class CreditIntegrationTest {
     void completeAd_fifthView_earnsOneCredit() throws Exception {
         String token = signIn();
         UUID userId = currentUserId();
-        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime noonKst = LocalDate.now(ZoneId.of("Asia/Seoul"))
+            .atTime(12, 0).atZone(ZoneId.of("Asia/Seoul")).toOffsetDateTime();
         for (int i = 0; i < 4; i++) {
-            insertCompletedAdSession(userId, now.minusMinutes(i));
+            insertCompletedAdSession(userId, noonKst.minusMinutes(i));
         }
         UUID sessionId = startAdAndGetSessionId(token);
 
