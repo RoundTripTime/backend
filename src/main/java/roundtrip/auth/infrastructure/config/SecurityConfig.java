@@ -32,6 +32,7 @@ public class SecurityConfig {
                 .requestMatchers("/jobs/**").authenticated()
                 .requestMatchers("/candidates/**").authenticated()
                 .requestMatchers("/itineraries/**").authenticated()
+                .requestMatchers("/community/**").authenticated()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
                 .anyRequest().authenticated())
