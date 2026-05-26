@@ -114,6 +114,10 @@ public class User extends BaseEntity<UUID> {
         if(amount <= 0){
             throw new IllegalArgumentException("차감 금액은 양수여야 합니다.");
         }
+        if(this.creditBalance < amount){
+            throw new roundtrip.common.exception.BusinessException(
+                roundtrip.common.exception.ErrorCode.INSUFFICIENT_CREDITS);
+        }
         this.creditBalance -= amount;
     }
 }
