@@ -12,4 +12,6 @@ interface ItineraryJpaRepository extends JpaRepository<Itinerary, UUID> {
     List<Itinerary> findByUserIdOrderByCreatedAtDesc(UUID userId);
 
     Optional<Itinerary> findByIdAndUserId(UUID id, UUID userId);
+
+    Optional<Itinerary> findByShareToken(String shareToken);
 }
