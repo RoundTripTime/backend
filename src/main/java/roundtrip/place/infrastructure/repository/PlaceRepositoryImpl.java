@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import roundtrip.place.domain.entity.Place;
 import roundtrip.place.domain.entity.PlaceCategory;
+import roundtrip.place.domain.entity.PlaceReview;
 import roundtrip.place.domain.repository.PlaceRepository;
 
 import java.math.BigDecimal;
@@ -18,6 +19,7 @@ import java.util.UUID;
 public class PlaceRepositoryImpl implements PlaceRepository {
 
     private final PlaceJpaRepository jpa;
+    private final PlaceReviewJpaRepository reviewJpa;
 
     @PersistenceContext
     private EntityManager em;
@@ -168,6 +170,46 @@ public class PlaceRepositoryImpl implements PlaceRepository {
                 (String) r[7],
                 r[8] != null ? ((Number) r[8]).doubleValue() : 0.0
         )).toList();
+    }
+
+    // ── Reviews ──
+
+    @Override
+    public PlaceReview saveReview(PlaceReview review) {
+        return reviewJpa.save(review);
+    }
+
+    @Override
+    public Optional<PlaceReview> findReviewByIdAndPlaceId(UUID reviewId, UUID placeId) {
+        return reviewJpa.findByIdAndPlaceId(reviewId, placeId);
+    }
+
+    @Override
+    public boolean existsReviewByPlaceIdAndUserId(UUID placeId, UUID userId) {
+        return reviewJpa.existsByPlaceIdAndUserId(placeId, userId);
+    }
+
+    @Override
+    public void deleteReview(PlaceReview review) {
+        reviewJpa.delete(review);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public List<PlaceReview> findReviewsByPlaceIdBefore(UUID placeId, UUID cursorId, int limit) {
+        String jpql = "SELECT r FROM PlaceReview r WHERE r.placeId = :placeId";
+        if (cursorId != null) {
+            jpql += " AND r.createdAt < (SELECT rr.createdAt FROM PlaceReview rr WHERE rr.id = :cursorId)";
+        }
+        jpql += " ORDER BY r.createdAt DESC";
+
+        var query = em.createQuery(jpql, PlaceReview.class);
+        query.setParameter("placeId", placeId);
+        if (cursorId != null) {
+            query.setParameter("cursorId", cursorId);
+        }
+        query.setMaxResults(limit);
+        return query.getResultList();
     }
 
     private PlaceCategory parseCategory(String value) {
