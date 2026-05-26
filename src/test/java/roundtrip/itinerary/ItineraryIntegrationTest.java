@@ -24,6 +24,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import roundtrip.auth.domain.SocialIdentity;
 import roundtrip.auth.infrastructure.social.SocialIdTokenVerifierRegistry;
+import roundtrip.itinerary.application.PlanningAgentService;
 import roundtrip.itinerary.infrastructure.myrealtrip.MyRealTripClient;
 import roundtrip.user.domain.entity.SocialProvider;
 import tools.jackson.databind.json.JsonMapper;
@@ -67,6 +68,9 @@ class ItineraryIntegrationTest {
 
     @MockitoBean
     MyRealTripClient myRealTripClient;
+
+    @MockitoBean
+    PlanningAgentService planningAgentService;
 
     @Autowired WebApplicationContext context;
     @Autowired JsonMapper objectMapper;
@@ -579,6 +583,79 @@ class ItineraryIntegrationTest {
         Map<String, Object> body = objectMapper.readValue(result.getResponse().getContentAsString(), Map.class);
         return UUID.fromString((String) body.get("item_id"));
     }
+
+    // ──────────────── POST /itineraries/:id/agent ────────────────
+
+    @Test
+    void agentChat_validRequest_returns200() throws Exception {
+        String token = signIn();
+        UUID itineraryId = createItinerary(token);
+
+        when(planningAgentService.chat(any(), eq(itineraryId), eq("일정 요약해줘"), any()))
+            .thenReturn(new PlanningAgentService.AgentResponse(
+                "현재 일정을 요약해드릴게요.", List.of(), false));
+
+        var body = Map.of("message", "일정 요약해줘");
+        mockMvc.perform(post("/itineraries/" + itineraryId + "/agent")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.reply").value("현재 일정을 요약해드릴게요."))
+            .andExpect(jsonPath("$.tool_results").isArray())
+            .andExpect(jsonPath("$.itinerary_updated").value(false));
+    }
+
+    @Test
+    void agentChat_withHistory_returns200() throws Exception {
+        String token = signIn();
+        UUID itineraryId = createItinerary(token);
+
+        when(planningAgentService.chat(any(), eq(itineraryId), eq("비슷한 카페 찾아줘"), any()))
+            .thenReturn(new PlanningAgentService.AgentResponse(
+                "비슷한 카페를 찾았어요!",
+                List.of(new PlanningAgentService.ToolResult("search_similar_places",
+                    List.of(Map.of("place_id", "uuid", "canonical_name", "블루보틀")))),
+                false));
+
+        var body = Map.of(
+            "message", "비슷한 카페 찾아줘",
+            "history", List.of(
+                Map.of("role", "user", "content", "동선 최적화해줘"),
+                Map.of("role", "assistant", "content", "거리 기준으로 재배열했어요.")
+            )
+        );
+        mockMvc.perform(post("/itineraries/" + itineraryId + "/agent")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.reply").value("비슷한 카페를 찾았어요!"))
+            .andExpect(jsonPath("$.tool_results[0].tool").value("search_similar_places"))
+            .andExpect(jsonPath("$.itinerary_updated").value(false));
+    }
+
+    @Test
+    void agentChat_withoutToken_returns401() throws Exception {
+        mockMvc.perform(post("/itineraries/" + UUID.randomUUID() + "/agent")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(Map.of("message", "test"))))
+            .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void agentChat_emptyMessage_returns400() throws Exception {
+        String token = signIn();
+        UUID itineraryId = createItinerary(token);
+
+        mockMvc.perform(post("/itineraries/" + itineraryId + "/agent")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(Map.of("message", ""))))
+            .andExpect(status().isBadRequest());
+    }
+
+    // ──────────────── helpers ────────────────
 
     private UUID insertTestPlace(String name) {
         UUID id = UUID.randomUUID();
