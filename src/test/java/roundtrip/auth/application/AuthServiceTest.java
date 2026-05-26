@@ -21,7 +21,7 @@ import roundtrip.user.domain.repository.UserRepository;
 import roundtrip.collection.application.CollectionService;
 import roundtrip.user.domain.repository.UserSocialAccountRepository;
 import roundtrip.user.domain.service.NicknameGenerator;
-import roundtrip.user.domain.service.RoboHashAvatar;
+import roundtrip.user.infrastructure.s3.AvatarStorage;
 import roundtrip.user.domain.vo.Nickname;
 
 import java.time.Duration;
@@ -45,6 +45,7 @@ class AuthServiceTest {
     @Mock JwtTokenProvider jwtTokenProvider;
     @Mock RefreshTokenStore refreshTokenStore;
     @Mock CollectionService collectionService;
+    @Mock AvatarStorage avatarStorage;
 
     @InjectMocks AuthService service;
 
@@ -54,10 +55,13 @@ class AuthServiceTest {
     @Test
     void signIn_newUser_registersAndIssuesTokens() {
         UUID newUserId = UUID.randomUUID();
+        String expectedAvatarUrl = "https://bucket.s3.ap-northeast-2.amazonaws.com/avatars/anonymous/이상한_여우.png";
         when(verifierRegistry.verify(SocialProvider.KAKAO, "id-token")).thenReturn(identity);
         when(socialAccountRepository.findByProviderAndSocialId(SocialProvider.KAKAO, "social-1"))
             .thenReturn(Optional.empty());
         when(nicknameGenerator.generate()).thenReturn("이상한 여우 0001");
+        when(avatarStorage.exists("avatars/anonymous/이상한_여우.png")).thenReturn(true);
+        when(avatarStorage.buildUrl("avatars/anonymous/이상한_여우.png")).thenReturn(expectedAvatarUrl);
         when(userRepository.save(any(User.class))).thenAnswer(inv -> {
             User saved = inv.getArgument(0);
             ReflectionTestUtils.setField(saved, "id", newUserId);
@@ -66,11 +70,12 @@ class AuthServiceTest {
         when(jwtTokenProvider.issuePair(newUserId)).thenReturn(tokens);
         when(jwtTokenProvider.refreshExpiry()).thenReturn(Duration.ofDays(14));
 
+        ReflectionTestUtils.setField(service, "avatarStorage", avatarStorage);
         SignInResult result = service.signInWithSocial(SocialProvider.KAKAO, "id-token", Locale.KOREA);
 
         assertThat(result.isNewUser()).isTrue();
         assertThat(result.tokens()).isEqualTo(tokens);
-        assertThat(result.user().getAvatarUrl()).isEqualTo(RoboHashAvatar.from("이상한 여우 0001"));
+        assertThat(result.user().getAvatarUrl()).isEqualTo(expectedAvatarUrl);
         verify(userRepository).save(any(User.class));
         verify(socialAccountRepository).save(any(UserSocialAccount.class));
         verify(refreshTokenStore).save(eq(newUserId), eq("new-jti"), any());
