@@ -2,6 +2,7 @@ package roundtrip.place.domain.repository;
 
 import roundtrip.place.domain.entity.Place;
 import roundtrip.place.domain.entity.PlaceCategory;
+import roundtrip.place.domain.entity.PlaceReview;
 
 import java.util.List;
 import java.util.Optional;
@@ -22,6 +23,17 @@ public interface PlaceRepository {
     List<DiscoverRow> findDiscoverPlaces(UUID userId, int limit, PlaceCategory category, String countryCode);
 
     List<DiscoverRow> findDiscoverPlacesColdStart(UUID userId, int limit, PlaceCategory category, String countryCode, List<UUID> excludeIds);
+
+    // ── Reviews ──
+    PlaceReview saveReview(PlaceReview review);
+
+    Optional<PlaceReview> findReviewByIdAndPlaceId(UUID reviewId, UUID placeId);
+
+    boolean existsReviewByPlaceIdAndUserId(UUID placeId, UUID userId);
+
+    void deleteReview(PlaceReview review);
+
+    List<PlaceReview> findReviewsByPlaceIdBefore(UUID placeId, UUID cursorId, int limit);
 
     record PlaceSimilarRow(
             UUID id, String canonicalName, PlaceCategory category,

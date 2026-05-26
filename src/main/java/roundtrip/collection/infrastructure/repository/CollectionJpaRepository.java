@@ -12,4 +12,6 @@ interface CollectionJpaRepository extends JpaRepository<Collection, UUID> {
     List<Collection> findByUserId(UUID userId);
 
     Optional<Collection> findByIdAndUserId(UUID id, UUID userId);
+
+    Optional<Collection> findByShareToken(String shareToken);
 }

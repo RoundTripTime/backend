@@ -43,6 +43,11 @@ public class ItineraryRepositoryImpl implements ItineraryRepository {
     }
 
     @Override
+    public Optional<Itinerary> findByShareToken(String shareToken) {
+        return itineraryJpa.findByShareToken(shareToken);
+    }
+
+    @Override
     public int countItemsByItineraryId(UUID itineraryId) {
         return itemJpa.countByItineraryId(itineraryId);
     }

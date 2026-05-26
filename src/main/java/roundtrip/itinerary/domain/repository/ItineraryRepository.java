@@ -19,6 +19,8 @@ public interface ItineraryRepository {
 
     void deleteById(UUID id);
 
+    Optional<Itinerary> findByShareToken(String shareToken);
+
     int countItemsByItineraryId(UUID itineraryId);
 
     ItineraryItem saveItem(ItineraryItem item);

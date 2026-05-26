@@ -95,7 +95,7 @@ class PlaceIntegrationTest {
     @AfterEach
     void cleanup() {
         jdbcTemplate.execute(
-            "TRUNCATE TABLE collection_places, collections, place_candidates, extraction_jobs, " +
+            "TRUNCATE TABLE place_reviews, collection_places, collections, place_candidates, extraction_jobs, " +
             "source_links, user_social_accounts, users CASCADE"
         );
         jdbcTemplate.execute("TRUNCATE TABLE places CASCADE");
@@ -310,14 +310,183 @@ class PlaceIntegrationTest {
             .andExpect(status().isUnauthorized());
     }
 
+    // ──────────────────── POST /places/:id/reviews ────────────────────
+
+    @Test
+    void createReview_validRequest_returns201() throws Exception {
+        UUID placeId = insertTestPlace("리뷰장소", "ATTRACTION", "JP", null, null);
+
+        mockMvc.perform(post("/places/" + placeId + "/reviews")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"rating\":4,\"content\":\"뷰가 정말 좋아요!\"}"))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.review_id").isNotEmpty())
+            .andExpect(jsonPath("$.rating").value(4))
+            .andExpect(jsonPath("$.content").value("뷰가 정말 좋아요!"))
+            .andExpect(jsonPath("$.author.nickname").isNotEmpty());
+    }
+
+    @Test
+    void createReview_duplicate_returns409() throws Exception {
+        UUID placeId = insertTestPlace("중복리뷰", "CAFE", "KR", null, null);
+
+        mockMvc.perform(post("/places/" + placeId + "/reviews")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"rating\":5}"))
+            .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/places/" + placeId + "/reviews")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"rating\":3}"))
+            .andExpect(status().isConflict());
+    }
+
+    @Test
+    void createReview_placeNotFound_returns404() throws Exception {
+        mockMvc.perform(post("/places/" + UUID.randomUUID() + "/reviews")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"rating\":4}"))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void createReview_invalidRating_returns400() throws Exception {
+        UUID placeId = insertTestPlace("잘못된평점", "CAFE", "KR", null, null);
+
+        mockMvc.perform(post("/places/" + placeId + "/reviews")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"rating\":0}"))
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createReview_withoutToken_returns401() throws Exception {
+        UUID placeId = insertTestPlace("미인증리뷰", "CAFE", "KR", null, null);
+
+        mockMvc.perform(post("/places/" + placeId + "/reviews")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"rating\":4}"))
+            .andExpect(status().isUnauthorized());
+    }
+
+    // ──────────────────── GET /places/:id/reviews ────────────────────
+
+    @Test
+    void getReviews_afterCreating_returnsList() throws Exception {
+        UUID placeId = insertTestPlace("리뷰목록", "ATTRACTION", "JP", null, null);
+
+        mockMvc.perform(post("/places/" + placeId + "/reviews")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"rating\":5,\"content\":\"최고!\"}"))
+            .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/places/" + placeId + "/reviews")
+                .header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items").isArray())
+            .andExpect(jsonPath("$.items.length()").value(1))
+            .andExpect(jsonPath("$.items[0].rating").value(5))
+            .andExpect(jsonPath("$.items[0].content").value("최고!"));
+    }
+
+    @Test
+    void getReviews_emptyPlace_returnsEmptyList() throws Exception {
+        UUID placeId = insertTestPlace("리뷰없음", "CAFE", "KR", null, null);
+
+        mockMvc.perform(get("/places/" + placeId + "/reviews")
+                .header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items").isArray())
+            .andExpect(jsonPath("$.items.length()").value(0));
+    }
+
+    @Test
+    void getReviews_placeNotFound_returns404() throws Exception {
+        mockMvc.perform(get("/places/" + UUID.randomUUID() + "/reviews")
+                .header("Authorization", "Bearer " + token))
+            .andExpect(status().isNotFound());
+    }
+
+    // ──────────────────── DELETE /places/:id/reviews/:reviewId ────────────────────
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void deleteReview_ownReview_returns204() throws Exception {
+        UUID placeId = insertTestPlace("삭제리뷰", "ATTRACTION", "JP", null, null);
+
+        MvcResult result = mockMvc.perform(post("/places/" + placeId + "/reviews")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"rating\":3}"))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        Map<String, Object> body = objectMapper.readValue(result.getResponse().getContentAsString(), Map.class);
+        UUID reviewId = UUID.fromString((String) body.get("review_id"));
+
+        mockMvc.perform(delete("/places/" + placeId + "/reviews/" + reviewId)
+                .header("Authorization", "Bearer " + token))
+            .andExpect(status().isNoContent());
+
+        // 삭제 확인
+        mockMvc.perform(get("/places/" + placeId + "/reviews")
+                .header("Authorization", "Bearer " + token))
+            .andExpect(jsonPath("$.items.length()").value(0));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void deleteReview_otherUserReview_returns403() throws Exception {
+        UUID placeId = insertTestPlace("타인리뷰삭제", "ATTRACTION", "JP", null, null);
+
+        MvcResult result = mockMvc.perform(post("/places/" + placeId + "/reviews")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"rating\":4}"))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        Map<String, Object> body = objectMapper.readValue(result.getResponse().getContentAsString(), Map.class);
+        UUID reviewId = UUID.fromString((String) body.get("review_id"));
+
+        // 다른 유저로 로그인
+        when(verifierRegistry.verify(eq(SocialProvider.KAKAO), eq("other-token")))
+            .thenReturn(new SocialIdentity(SocialProvider.KAKAO, "other-social", "other@example.com"));
+        String otherToken = signInWith("other-token");
+
+        mockMvc.perform(delete("/places/" + placeId + "/reviews/" + reviewId)
+                .header("Authorization", "Bearer " + otherToken))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void deleteReview_nonExisting_returns404() throws Exception {
+        UUID placeId = insertTestPlace("리뷰없음2", "CAFE", "KR", null, null);
+
+        mockMvc.perform(delete("/places/" + placeId + "/reviews/" + UUID.randomUUID())
+                .header("Authorization", "Bearer " + token))
+            .andExpect(status().isNotFound());
+    }
+
     // ──────────────────── helpers ────────────────────
 
     @SuppressWarnings("unchecked")
     private String signIn() throws Exception {
+        return signInWith("valid-token");
+    }
+
+    @SuppressWarnings("unchecked")
+    private String signInWith(String idToken) throws Exception {
         MvcResult result = mockMvc.perform(post("/auth/social")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(
-                    Map.of("provider", "kakao", "id_token", "valid-token")))
+                    Map.of("provider", "kakao", "id_token", idToken)))
                 .header("Accept-Language", "ko-KR"))
             .andExpect(status().isCreated())
             .andReturn();

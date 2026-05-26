@@ -29,4 +29,6 @@ public interface CollectionRepository {
     List<Place> findPlacesByCollectionId(UUID collectionId);
 
     void deleteById(UUID id);
+
+    Optional<Collection> findByShareToken(String shareToken);
 }

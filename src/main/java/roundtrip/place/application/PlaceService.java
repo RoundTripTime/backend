@@ -11,6 +11,7 @@ import roundtrip.extract.domain.entity.ExtractionJob;
 import roundtrip.extract.domain.repository.ExtractionJobRepository;
 import roundtrip.place.domain.entity.Place;
 import roundtrip.place.domain.entity.PlaceCategory;
+import roundtrip.place.domain.entity.PlaceReview;
 import roundtrip.place.domain.repository.PlaceRepository;
 import roundtrip.sourcelink.domain.entity.SourceLink;
 import roundtrip.sourcelink.domain.repository.SourceLinkRepository;
@@ -144,7 +145,46 @@ public class PlaceService {
         }
     }
 
+    // ── Reviews ──
+
+    @Transactional(readOnly = true)
+    public ReviewListResult getReviews(UUID placeId, UUID cursorId, int limit) {
+        placeRepository.findById(placeId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PLACE_NOT_FOUND));
+
+        List<PlaceReview> reviews = placeRepository.findReviewsByPlaceIdBefore(placeId, cursorId, limit + 1);
+        boolean hasMore = reviews.size() > limit;
+        if (hasMore) {
+            reviews = reviews.subList(0, limit);
+        }
+        UUID nextCursor = hasMore && !reviews.isEmpty() ? reviews.getLast().getId() : null;
+        return new ReviewListResult(reviews, nextCursor);
+    }
+
+    @Transactional
+    public PlaceReview createReview(UUID placeId, UUID userId, short rating, String body) {
+        placeRepository.findById(placeId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PLACE_NOT_FOUND));
+        if (placeRepository.existsReviewByPlaceIdAndUserId(placeId, userId)) {
+            throw new BusinessException(ErrorCode.REVIEW_ALREADY_EXISTS);
+        }
+        PlaceReview review = PlaceReview.create(placeId, userId, rating, body);
+        return placeRepository.saveReview(review);
+    }
+
+    @Transactional
+    public void deleteReview(UUID placeId, UUID reviewId, UUID userId) {
+        PlaceReview review = placeRepository.findReviewByIdAndPlaceId(reviewId, placeId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.REVIEW_NOT_FOUND));
+        if (!review.getUserId().equals(userId)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "타인의 리뷰를 삭제할 수 없습니다.");
+        }
+        placeRepository.deleteReview(review);
+    }
+
     public record PlaceDetailResult(Place place, SourceLink sourceLink) {}
 
     public record SourceLinkResult(SourceLink sourceLink, PlaceCandidate candidate) {}
+
+    public record ReviewListResult(List<PlaceReview> reviews, UUID nextCursor) {}
 }
