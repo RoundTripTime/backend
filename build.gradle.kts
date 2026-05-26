@@ -46,6 +46,10 @@ dependencies {
 	implementation(platform("software.amazon.awssdk:bom:2.31.58"))
 	implementation("software.amazon.awssdk:s3")
 
+	// --- SVG Rasterization (Batik) ---
+	implementation("org.apache.xmlgraphics:batik-transcoder:1.18")
+	implementation("org.apache.xmlgraphics:batik-codec:1.18")
+
 	// --- API Docs ---
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3")
 

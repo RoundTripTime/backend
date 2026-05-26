@@ -11,7 +11,7 @@ import roundtrip.user.domain.entity.MapProvider;
 import roundtrip.user.domain.entity.User;
 import roundtrip.user.domain.exception.UserNotFoundException;
 import roundtrip.user.domain.repository.UserRepository;
-import roundtrip.user.domain.service.RoboHashAvatar;
+import roundtrip.user.domain.service.AnonymousAvatar;
 import roundtrip.user.domain.vo.Nickname;
 import roundtrip.user.infrastructure.s3.AvatarStorage;
 
@@ -43,9 +43,12 @@ public class UserService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new UserNotFoundException(userId));
 
-        // 닉네임 변경 시, RoboHash 기본 아바타 사용 중이면 새 닉네임으로 갱신
-        if (command.nickname() != null && RoboHashAvatar.isRoboHash(user.getAvatarUrl())) {
-            user.changeAvatar(RoboHashAvatar.from(command.nickname()));
+        // 닉네임 변경 시, Anonymous 기본 아바타 사용 중이면 새 닉네임으로 갱신
+        if (command.nickname() != null && AnonymousAvatar.isAnonymous(user.getAvatarUrl())) {
+            String newAvatarUrl = AnonymousAvatar.resolve(command.nickname(), avatarStorage);
+            if (newAvatarUrl != null) {
+                user.changeAvatar(newAvatarUrl);
+            }
         }
 
         user.updateProfile(
@@ -68,7 +71,7 @@ public class UserService {
 
         // 기존 S3 아바타가 있으면 삭제
         String oldUrl = user.getAvatarUrl();
-        if (oldUrl != null && !RoboHashAvatar.isRoboHash(oldUrl)) {
+        if (oldUrl != null && !AnonymousAvatar.isAnonymous(oldUrl)) {
             avatarStorage.delete(oldUrl);
         }
 

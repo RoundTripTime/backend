@@ -13,7 +13,7 @@ import roundtrip.user.domain.entity.MapProvider;
 import roundtrip.user.domain.entity.User;
 import roundtrip.user.domain.exception.UserNotFoundException;
 import roundtrip.user.domain.repository.UserRepository;
-import roundtrip.user.domain.service.RoboHashAvatar;
+import roundtrip.user.domain.service.AnonymousAvatar;
 import roundtrip.user.domain.vo.Nickname;
 import roundtrip.user.infrastructure.s3.AvatarStorage;
 
@@ -23,8 +23,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -118,18 +117,23 @@ class UserServiceTest {
     }
 
     @Test
-    void updateMyProfile_nicknameChangeWithRoboHash_updatesAvatar() {
-        String roboUrl = RoboHashAvatar.from("초기닉네임");
-        user.changeAvatar(roboUrl);
+    void updateMyProfile_nicknameChangeWithAnonymousAvatar_updatesAvatar() {
+        String anonymousUrl = "https://bucket.s3.ap-northeast-2.amazonaws.com/avatars/anonymous/이상한_여우.png";
+        user.changeAvatar(anonymousUrl);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        String expectedNewUrl = "https://bucket.s3.ap-northeast-2.amazonaws.com/avatars/anonymous/용감한_사자.png";
+        when(avatarStorage.exists("avatars/anonymous/용감한_사자.png")).thenReturn(true);
+        when(avatarStorage.buildUrl("avatars/anonymous/용감한_사자.png")).thenReturn(expectedNewUrl);
+
         UpdateProfileCommand cmd = new UpdateProfileCommand(
-                "새닉네임", null, null, null, null);
+                "용감한 사자 1234", null, null, null, null);
 
         User result = service.updateMyProfile(userId, cmd);
 
-        assertThat(result.getNickname().value()).isEqualTo("새닉네임");
-        assertThat(RoboHashAvatar.isRoboHash(result.getAvatarUrl())).isTrue();
-        assertThat(result.getAvatarUrl()).isEqualTo(RoboHashAvatar.from("새닉네임"));
+        assertThat(result.getNickname().value()).isEqualTo("용감한 사자 1234");
+        assertThat(AnonymousAvatar.isAnonymous(result.getAvatarUrl())).isTrue();
+        assertThat(result.getAvatarUrl()).isEqualTo(expectedNewUrl);
     }
 
     @Test
@@ -147,7 +151,7 @@ class UserServiceTest {
 
     @Test
     void updateAvatar_validFile_uploadsAndSetsUrl() throws IOException {
-        user.changeAvatar(RoboHashAvatar.from("초기닉네임"));
+        user.changeAvatar("https://bucket.s3.ap-northeast-2.amazonaws.com/avatars/anonymous/이상한_여우.png");
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(avatarStorage.upload(eq(userId), any())).thenReturn("https://bucket.s3.amazonaws.com/avatars/new.jpg");
 
@@ -157,7 +161,7 @@ class UserServiceTest {
         User result = service.updateAvatar(userId, file);
 
         assertThat(result.getAvatarUrl()).isEqualTo("https://bucket.s3.amazonaws.com/avatars/new.jpg");
-        verify(avatarStorage, never()).delete(any()); // RoboHash URL��므로 S3 삭제 안 함
+        verify(avatarStorage, never()).delete(any()); // Anonymous URL��므로 S3 삭제 안 함
     }
 
     @Test
