@@ -38,6 +38,21 @@ public class AuthController {
 
     private final AuthService authService;
 
+    @Operation(summary = "릴리스 검증용 테스트 토큰 발급",
+            description = "AUTH_TEST_SECRET 환경변수가 설정된 서버에서만 동작. 릴리스 후 API 검증 시 사용.")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "토큰 발급 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "UNAUTHORIZED — secret 불일치 또는 미설정",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @PostMapping("/test-token")
+    public ResponseEntity<SignInResponse> issueTestToken(
+            @RequestBody java.util.Map<String, String> request, Locale clientLocale) {
+        String secret = request.getOrDefault("secret", "");
+        SignInResult result = authService.issueTestToken(secret, clientLocale);
+        return ApiResponse.of(SuccessCode.AUTH_LOGIN_SUCCESS, SignInResponse.from(result));
+    }
+
     @Operation(summary = "소셜 로그인", description = "Google / Kakao OAuth ID 토큰으로 가입 또는 로그인한다. 최초 가입 시 `user.is_new_user = true`.")
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "로그인 성공"),
