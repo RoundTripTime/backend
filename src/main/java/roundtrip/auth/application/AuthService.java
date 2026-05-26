@@ -90,6 +90,39 @@ public class AuthService {
         refreshTokenStore.deleteAll(userId);
     }
 
+    /**
+     * 릴리스 검증용 테스트 토큰 발급.
+     * AUTH_TEST_SECRET 환경변수가 설정되어 있고, 요청 secret이 일치할 때만 동작한다.
+     */
+    @Transactional
+    public SignInResult issueTestToken(String secret, Locale locale) {
+        String testSecret = System.getenv("AUTH_TEST_SECRET");
+        if (testSecret == null || testSecret.isBlank() || !testSecret.equals(secret)) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+
+        String testSocialId = "test-verification-user";
+        var existing = socialAccountRepository.findByProviderAndSocialId(SocialProvider.KAKAO, testSocialId);
+
+        User user;
+        boolean isNewUser;
+        if (existing.isPresent()) {
+            user = userRepository.findById(existing.get().getUserId())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.LINKED_USER_NOT_FOUND));
+            isNewUser = false;
+        } else {
+            SocialIdentity identity = new SocialIdentity(SocialProvider.KAKAO, testSocialId, "test@roundtrip.com");
+            user = registerNewUser(identity, locale);
+            socialAccountRepository.save(UserSocialAccount.link(user.getId(), SocialProvider.KAKAO, testSocialId));
+            collectionService.createDefaultCollection(user.getId());
+            isNewUser = true;
+        }
+
+        IssuedTokens tokens = jwtTokenProvider.issuePair(user.getId());
+        refreshTokenStore.save(user.getId(), tokens.refreshJti(), jwtTokenProvider.refreshExpiry());
+        return new SignInResult(user, tokens, isNewUser);
+    }
+
     private User registerNewUser(SocialIdentity identity, Locale clientLocale) {
         String localeTag = resolveLocale(clientLocale);
         Email email = identity.email() == null ? null : new Email(identity.email());
