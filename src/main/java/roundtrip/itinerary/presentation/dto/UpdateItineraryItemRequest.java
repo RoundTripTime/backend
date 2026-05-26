@@ -1,0 +1,13 @@
+package roundtrip.itinerary.presentation.dto;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(description = "장소 일정 수정 요청")
+public record UpdateItineraryItemRequest(
+    @Schema(description = "일자 번호 (null 허용 — 미배치 풀로 이동)", nullable = true)
+    Integer dayIndex,
+    @Schema(description = "순서", nullable = true)
+    Integer sortOrder,
+    @Schema(description = "체류 시간 (분)", nullable = true)
+    Integer plannedDurationMinutes
+) {}

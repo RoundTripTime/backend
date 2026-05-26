@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -17,7 +18,9 @@ import roundtrip.common.exception.ErrorResponse;
 import roundtrip.common.response.ApiResponse;
 import roundtrip.common.response.SuccessCode;
 import roundtrip.place.application.PlaceService;
+import roundtrip.place.domain.entity.PlaceReview;
 import roundtrip.place.presentation.dto.*;
+import roundtrip.user.domain.repository.UserRepository;
 
 import java.util.List;
 import java.util.UUID;
@@ -29,6 +32,7 @@ import java.util.UUID;
 public class PlaceController {
 
     private final PlaceService placeService;
+    private final UserRepository userRepository;
 
     @Operation(summary = "장소 수동 검색",
         description = "저신뢰 후보 대체 또는 직접 추가 시 사용. Kakao / Google Maps API를 통해 검색한다.")
@@ -94,6 +98,60 @@ public class PlaceController {
                 .map(PlaceSourceLinkItem::from)
                 .toList();
         return ApiResponse.of(SuccessCode.PLACE_SOURCE_LINK_LIST_FETCHED, new PlaceSourceLinkListResponse(items));
+    }
+
+    // ──────────────────── Reviews ────────────────────
+
+    @Operation(summary = "장소 리뷰 목록 조회")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "NOT_FOUND",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @GetMapping("/places/{placeId}/reviews")
+    public ResponseEntity<ReviewListResponse> getReviews(
+            @PathVariable UUID placeId,
+            @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(required = false) UUID cursor) {
+        int safeLimit = Math.min(Math.max(limit, 1), 50);
+        var result = placeService.getReviews(placeId, cursor, safeLimit);
+        List<ReviewResponse> items = result.reviews().stream()
+            .map(r -> ReviewResponse.from(r, userRepository.findById(r.getUserId()).orElse(null)))
+            .toList();
+        return ApiResponse.of(SuccessCode.REVIEW_LIST_FETCHED, new ReviewListResponse(items, result.nextCursor()));
+    }
+
+    @Operation(summary = "리뷰 작성", description = "장소 1개당 사용자 1개 리뷰만 허용.")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "작성 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "CONFLICT — 이미 해당 장소에 리뷰 존재",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @PostMapping("/places/{placeId}/reviews")
+    public ResponseEntity<ReviewResponse> createReview(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable UUID placeId,
+            @Valid @RequestBody CreateReviewRequest request) {
+        PlaceReview review = placeService.createReview(placeId, user.userId(), request.rating(), request.content());
+        var author = userRepository.findById(user.userId()).orElse(null);
+        return ApiResponse.of(SuccessCode.REVIEW_CREATED, ReviewResponse.from(review, author));
+    }
+
+    @Operation(summary = "리뷰 삭제", description = "본인 리뷰만 삭제 가능.")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "삭제 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "FORBIDDEN — 타인 리뷰 삭제 시도",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "NOT_FOUND",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @DeleteMapping("/places/{placeId}/reviews/{reviewId}")
+    public ResponseEntity<Void> deleteReview(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable UUID placeId,
+            @PathVariable UUID reviewId) {
+        placeService.deleteReview(placeId, reviewId, user.userId());
+        return ApiResponse.noContent(SuccessCode.REVIEW_DELETED);
     }
 
     @Operation(summary = "둘러보기 — 취향 기반 장소 추천",

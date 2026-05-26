@@ -70,4 +70,9 @@ public class CollectionRepositoryImpl implements CollectionRepository {
     public void deleteById(UUID id) {
         collectionJpa.deleteById(id);
     }
+
+    @Override
+    public Optional<Collection> findByShareToken(String shareToken) {
+        return collectionJpa.findByShareToken(shareToken);
+    }
 }
