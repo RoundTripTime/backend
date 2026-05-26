@@ -195,7 +195,9 @@ public class PlanningAgentService {
         boolean itineraryUpdated = false;
 
         try {
-            Object toolsDef = objectMapper.readTree(TOOLS_JSON);
+            @SuppressWarnings("unchecked")
+            List<Object> toolsDef = com.fasterxml.jackson.databind.json.JsonMapper.builder().build()
+                    .readValue(TOOLS_JSON, List.class);
 
             for (int round = 0; round < MAX_TOOL_ROUNDS; round++) {
                 Map<String, Object> requestBody = new LinkedHashMap<>();
@@ -205,33 +207,67 @@ public class PlanningAgentService {
                 requestBody.put("temperature", 0.3);
                 requestBody.put("max_tokens", 4096);
 
-                ChatCompletionResponse response = agentRestClient.post()
-                        .uri("/chat/completions")
-                        .body(requestBody)
-                        .retrieve()
-                        .body(ChatCompletionResponse.class);
+                ChatCompletionResponse response = null;
+                for (int retry = 0; retry < 5; retry++) {
+                    String rawResponse = agentRestClient.post()
+                            .uri("/chat/completions")
+                            .body(requestBody)
+                            .retrieve()
+                            .body(String.class);
+                    log.debug("Agent round {} (retry {}): raw={}", round, retry,
+                            rawResponse != null && rawResponse.length() > 500
+                                    ? rawResponse.substring(0, 500) + "..." : rawResponse);
+                    response = objectMapper.readValue(rawResponse, ChatCompletionResponse.class);
+                    if (response != null && response.choices() != null && !response.choices().isEmpty()) {
+                        var msg = response.choices().get(0).message();
+                        if ((msg.content() != null && !msg.content().isBlank())
+                                || (msg.toolCalls() != null && !msg.toolCalls().isEmpty())) {
+                            break;
+                        }
+                    }
+                    long waitMs = (retry + 1) * 5000L;
+                    log.warn("Agent received empty response (model cold start), retrying ({}/5) after {}ms...", retry + 1, waitMs);
+                    Thread.sleep(waitMs);
+                }
 
                 if (response == null || response.choices() == null || response.choices().isEmpty()) {
                     return new AgentResponse("죄송합니다. 응답을 생성하지 못했습니다.", List.of(), false);
                 }
 
                 var choice = response.choices().get(0);
+                String content = choice.message().content() != null ? choice.message().content() : "";
+                List<ToolCall> toolCalls = choice.message().toolCalls();
+                log.debug("Agent round {}: content={}, toolCalls={}", round,
+                        content.length() > 200 ? content.substring(0, 200) + "..." : content,
+                        toolCalls != null ? toolCalls.size() : "null");
 
-                // If no tool calls, return the final text response
-                if (choice.message().toolCalls() == null || choice.message().toolCalls().isEmpty()) {
-                    String reply = choice.message().content() != null ? choice.message().content() : "";
-                    return new AgentResponse(reply, allToolResults, itineraryUpdated);
+                // Qwen3 fallback: parse <tool_call> from content if tool_calls field is empty
+                if ((toolCalls == null || toolCalls.isEmpty()) && content.contains("<tool_call>")) {
+                    toolCalls = parseToolCallsFromContent(content);
+                    content = content.replaceAll("<tool_call>[\\s\\S]*?</tool_call>", "").trim();
                 }
 
-                // Add assistant message with tool calls
+                // If no tool calls, return the final text response
+                if (toolCalls == null || toolCalls.isEmpty()) {
+                    return new AgentResponse(content, allToolResults, itineraryUpdated);
+                }
+
+                // Add assistant message with tool calls (OpenAI format)
+                List<Map<String, Object>> toolCallMaps = toolCalls.stream().map(tc -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("id", tc.id());
+                    m.put("type", "function");
+                    m.put("function", Map.of("name", tc.function().name(), "arguments", tc.function().arguments()));
+                    return m;
+                }).toList();
                 Map<String, Object> assistantMsg = new LinkedHashMap<>();
                 assistantMsg.put("role", "assistant");
-                assistantMsg.put("content", choice.message().content());
-                assistantMsg.put("tool_calls", choice.message().toolCalls());
+                assistantMsg.put("content", content.isEmpty() ? null : content);
+                assistantMsg.put("tool_calls", toolCallMaps);
                 messages.add(assistantMsg);
 
                 // Execute each tool call
-                for (var toolCall : choice.message().toolCalls()) {
+                for (var toolCall : toolCalls) {
                     String toolName = toolCall.function().name();
                     String argsJson = toolCall.function().arguments();
                     var args = objectMapper.readTree(argsJson);
@@ -245,10 +281,11 @@ public class PlanningAgentService {
                         allToolResults.add(execResult.toolResult());
                     }
 
-                    // Add tool result message
+                    // Add tool result message (OpenAI format requires name field)
                     Map<String, Object> toolMsg = new LinkedHashMap<>();
                     toolMsg.put("role", "tool");
                     toolMsg.put("tool_call_id", toolCall.id());
+                    toolMsg.put("name", toolName);
                     toolMsg.put("content", execResult.resultJson());
                     messages.add(toolMsg);
                 }
@@ -471,6 +508,33 @@ public class PlanningAgentService {
             }
         }
         return sb.toString();
+    }
+
+    private List<ToolCall> parseToolCallsFromContent(String content) {
+        List<ToolCall> toolCalls = new ArrayList<>();
+        int idx = 0;
+        while (true) {
+            int start = content.indexOf("<tool_call>", idx);
+            if (start == -1) break;
+            int end = content.indexOf("</tool_call>", start);
+            if (end == -1) break;
+
+            String toolCallJson = content.substring(start + "<tool_call>".length(), end).trim();
+            try {
+                var node = objectMapper.readTree(toolCallJson);
+                String name = node.has("name") ? node.get("name").textValue() : "";
+                String arguments = node.has("arguments") ? objectMapper.writeValueAsString(node.get("arguments")) : "{}";
+                toolCalls.add(new ToolCall(
+                        "call_" + UUID.randomUUID().toString().substring(0, 8),
+                        "function",
+                        new FunctionCall(name, arguments)
+                ));
+            } catch (Exception e) {
+                log.warn("Failed to parse <tool_call> from content: {}", e.getMessage());
+            }
+            idx = end + "</tool_call>".length();
+        }
+        return toolCalls;
     }
 
     // ── DTOs ──
