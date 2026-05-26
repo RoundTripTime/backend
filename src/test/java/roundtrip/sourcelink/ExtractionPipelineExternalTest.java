@@ -39,8 +39,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * 실제 외부 API(Supadata, Gemini)를 호출하는 파이프라인 통합 테스트.
- * .env 파일에 SUPADATA_API_KEY, GEMINI_API_KEY가 설정되어 있어야 합니다.
+ * 실제 외부 API(Supadata, FeatherlessAI, Kakao)를 호출하는 파이프라인 통합 테스트.
+ * .env 파일에 SUPADATA_API_KEY, FEATHERLESSAI_API_KEY, KAKAO_REST_API_KEY가 설정되어 있어야 합니다.
  *
  * 실행: ./gradlew test -Dgroups=external
  */
@@ -171,6 +171,23 @@ class ExtractionPipelineExternalTest {
         candidates.forEach(c -> System.out.printf("  - [%s] %s (confidence=%.2f, requiresConfirmation=%s)%n",
             c.get("category"), c.get("candidate_name"), ((Number) c.get("confidence_score")).doubleValue(),
             c.get("requires_confirmation")));
+
+        // DB에서 providerMatchJson(Kakao 정규화 결과) 직접 확인
+        List<Map<String, Object>> dbCandidates = jdbcTemplate.queryForList(
+            "SELECT candidate_name, provider_match_json FROM place_candidates WHERE job_id = ?::uuid", jobId);
+        int normalizedCount = 0;
+        for (Map<String, Object> row : dbCandidates) {
+            String name = (String) row.get("candidate_name");
+            Object providerMatchObj = row.get("provider_match_json");
+            String providerMatch = providerMatchObj != null ? providerMatchObj.toString() : null;
+            if (providerMatch != null) {
+                normalizedCount++;
+                System.out.printf("  ✓ [정규화 성공] %s → %s%n", name, providerMatch);
+            } else {
+                System.out.printf("  ✗ [정규화 실패] %s%n", name);
+            }
+        }
+        System.out.printf("[ExternalTest] 정규화 결과: %d/%d 장소 매칭 성공%n", normalizedCount, dbCandidates.size());
 
         assertThat(candidates)
             .as("url=%s 에서 %d개 장소가 추출되어야 합니다", url, expectedCount)

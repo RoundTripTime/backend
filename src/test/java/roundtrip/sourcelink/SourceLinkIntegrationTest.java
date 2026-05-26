@@ -23,13 +23,12 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import roundtrip.auth.domain.SocialIdentity;
 import roundtrip.auth.infrastructure.social.SocialIdTokenVerifierRegistry;
-import roundtrip.sourcelink.application.ExtractionPipelineService;
-import roundtrip.sourcelink.infrastructure.external.GeminiPlaceParseResult;
+import roundtrip.sourcelink.infrastructure.external.FeatherlessAiClient;
+import roundtrip.sourcelink.infrastructure.external.KakaoLocalClient;
 import roundtrip.sourcelink.infrastructure.external.SupadataMetadataResponse;
 import roundtrip.sourcelink.infrastructure.external.SupadataExtractResponse;
 import roundtrip.sourcelink.infrastructure.external.SupadataExtractResultResponse;
 import roundtrip.sourcelink.infrastructure.external.SupadataClient;
-import roundtrip.sourcelink.infrastructure.external.GeminiClient;
 import roundtrip.user.domain.entity.SocialProvider;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -38,7 +37,6 @@ import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -74,7 +72,10 @@ class SourceLinkIntegrationTest {
     SupadataClient supadataClient;
 
     @MockitoBean
-    GeminiClient geminiClient;
+    FeatherlessAiClient featherlessAiClient;
+
+    @MockitoBean
+    KakaoLocalClient kakaoLocalClient;
 
     @Autowired WebApplicationContext context;
     @Autowired JsonMapper objectMapper;
@@ -103,7 +104,7 @@ class SourceLinkIntegrationTest {
                 "시부야 맛집 추천",
                 List.of("도쿄", "맛집")
             ));
-        when(geminiClient.parsePlaces(any()))
+        when(featherlessAiClient.parsePlaces(any()))
             .thenReturn(List.of());
         when(supadataClient.submitExtract(any(), any()))
             .thenReturn(new SupadataExtractResponse("mock-extract-job-id"));
