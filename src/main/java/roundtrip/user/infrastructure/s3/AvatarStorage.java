@@ -6,6 +6,8 @@ import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
@@ -33,6 +35,37 @@ public class AvatarStorage {
         s3Client.putObject(request, RequestBody.fromBytes(file.getBytes()));
         log.info("Avatar uploaded: bucket={}, key={}", properties.bucket(), key);
 
+        return String.format("https://%s.s3.%s.amazonaws.com/%s",
+                properties.bucket(), properties.region(), key);
+    }
+
+    public boolean exists(String key) {
+        try {
+            s3Client.headObject(HeadObjectRequest.builder()
+                    .bucket(properties.bucket())
+                    .key(key)
+                    .build());
+            return true;
+        } catch (NoSuchKeyException e) {
+            return false;
+        }
+    }
+
+    public String uploadBytes(String key, byte[] data, String contentType) {
+        PutObjectRequest request = PutObjectRequest.builder()
+                .bucket(properties.bucket())
+                .key(key)
+                .contentType(contentType)
+                .cacheControl("public, max-age=31536000")
+                .build();
+
+        s3Client.putObject(request, RequestBody.fromBytes(data));
+        log.info("Avatar generated and uploaded: bucket={}, key={}", properties.bucket(), key);
+
+        return buildUrl(key);
+    }
+
+    public String buildUrl(String key) {
         return String.format("https://%s.s3.%s.amazonaws.com/%s",
                 properties.bucket(), properties.region(), key);
     }

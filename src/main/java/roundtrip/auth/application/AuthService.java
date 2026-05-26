@@ -18,8 +18,9 @@ import roundtrip.user.domain.entity.User;
 import roundtrip.user.domain.entity.UserSocialAccount;
 import roundtrip.user.domain.repository.UserRepository;
 import roundtrip.user.domain.repository.UserSocialAccountRepository;
+import roundtrip.user.domain.service.AnonymousAvatar;
 import roundtrip.user.domain.service.NicknameGenerator;
-import roundtrip.user.domain.service.RoboHashAvatar;
+import roundtrip.user.infrastructure.s3.AvatarStorage;
 import roundtrip.user.domain.vo.Email;
 import roundtrip.user.domain.vo.Nickname;
 
@@ -40,6 +41,9 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenStore refreshTokenStore;
     private final CollectionService collectionService;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private AvatarStorage avatarStorage;
 
     @Transactional
     public SignInResult signInWithSocial(SocialProvider provider, String idToken, Locale clientLocale) {
@@ -127,7 +131,7 @@ public class AuthService {
         String localeTag = resolveLocale(clientLocale);
         Email email = identity.email() == null ? null : new Email(identity.email());
         Nickname nickname = new Nickname(nicknameGenerator.generate());
-        String avatarUrl = RoboHashAvatar.from(nickname.value());
+        String avatarUrl = AnonymousAvatar.resolve(nickname.value(), avatarStorage);
 
         User user = User.register(email, nickname, avatarUrl, localeTag, UNKNOWN_REGION);
         return userRepository.save(user);
