@@ -52,6 +52,11 @@ public class Place extends BaseEntity<UUID> {
     @Column(name = "evidence", columnDefinition = "TEXT")
     private String evidence;
 
+    public void updateThumbnail(String thumbnailUrl, ThumbnailSource thumbnailSource) {
+        this.thumbnailUrl = thumbnailUrl;
+        this.thumbnailSource = thumbnailSource;
+    }
+
     public static Place create(String canonicalName, BigDecimal latitude, BigDecimal longitude,
                                PlaceCategory category, String countryCode,
                                String kakaoPlaceId, String evidence) {

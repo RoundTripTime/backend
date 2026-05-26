@@ -1,0 +1,26 @@
+[Unit]
+Description=RoundTrip Backend API
+After=network.target postgresql.service redis-server.service
+Requires=postgresql.service redis-server.service
+
+[Service]
+Type=simple
+User=roundtrip
+Group=roundtrip
+WorkingDirectory=/opt/roundtrip
+
+EnvironmentFile=/opt/roundtrip/.env
+
+ExecStart=/usr/bin/java \
+  -Xms256m -Xmx512m \
+  -Dspring.profiles.active=${SPRING_PROFILES_ACTIVE} \
+  -jar /opt/roundtrip/roundtrip.jar
+
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=roundtrip
+
+[Install]
+WantedBy=multi-user.target
