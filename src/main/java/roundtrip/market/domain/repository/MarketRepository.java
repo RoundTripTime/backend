@@ -1,6 +1,5 @@
 package roundtrip.market.domain.repository;
 
-import roundtrip.market.domain.entity.CreditHistory;
 import roundtrip.market.domain.entity.MarketPlan;
 
 import java.util.List;
@@ -19,7 +18,5 @@ public interface MarketRepository {
     List<MarketPlan> findListedPlans(String keyword, String sort, UUID cursorId, int limit);
 
     // ── Credits ──
-    CreditHistory saveCredit(CreditHistory history);
-
     boolean hasPurchased(UUID userId, UUID marketPlanId);
 }
