@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import roundtrip.common.exception.BusinessException;
 import roundtrip.common.exception.ErrorCode;
+import roundtrip.common.infrastructure.FeatherlessAiRateLimiter;
 import roundtrip.itinerary.domain.entity.Itinerary;
 import roundtrip.itinerary.domain.entity.ItineraryItem;
 import roundtrip.itinerary.domain.repository.ItineraryRepository;
@@ -17,6 +18,7 @@ import roundtrip.sourcelink.infrastructure.external.FeatherlessAiProperties;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -154,18 +156,21 @@ public class PlanningAgentService {
     private final PlaceService placeService;
     private final FeatherlessAiProperties properties;
     private final ObjectMapper objectMapper;
+    private final FeatherlessAiRateLimiter rateLimiter;
     private final RestClient agentRestClient;
 
     public PlanningAgentService(ItineraryRepository itineraryRepository,
                                 PlaceRepository placeRepository,
                                 PlaceService placeService,
                                 FeatherlessAiProperties properties,
-                                ObjectMapper objectMapper) {
+                                ObjectMapper objectMapper,
+                                FeatherlessAiRateLimiter rateLimiter) {
         this.itineraryRepository = itineraryRepository;
         this.placeRepository = placeRepository;
         this.placeService = placeService;
         this.properties = properties;
         this.objectMapper = objectMapper;
+        this.rateLimiter = rateLimiter;
         this.agentRestClient = RestClient.builder()
                 .baseUrl("https://api.featherless.ai/v1")
                 .defaultHeader("Authorization", "Bearer " + properties.apiKey())
@@ -194,6 +199,9 @@ public class PlanningAgentService {
         List<ToolResult> allToolResults = new ArrayList<>();
         boolean itineraryUpdated = false;
 
+        if (!rateLimiter.tryAcquire(10, TimeUnit.SECONDS)) {
+            return new AgentResponse("현재 다른 요청을 처리 중입니다. 잠시 후 다시 시도해주세요.", List.of(), false);
+        }
         try {
             @SuppressWarnings("unchecked")
             List<Object> toolsDef = com.fasterxml.jackson.databind.json.JsonMapper.builder().build()
@@ -299,6 +307,8 @@ public class PlanningAgentService {
         } catch (Exception e) {
             log.error("Planning Agent error for itineraryId={}: {}", itineraryId, e.getMessage(), e);
             return new AgentResponse("죄송합니다. 요청 처리 중 오류가 발생했습니다.", List.of(), false);
+        } finally {
+            rateLimiter.release();
         }
     }
 

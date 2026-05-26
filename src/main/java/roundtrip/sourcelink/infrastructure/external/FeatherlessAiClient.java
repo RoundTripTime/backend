@@ -5,11 +5,13 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import roundtrip.common.infrastructure.FeatherlessAiRateLimiter;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Component
@@ -34,10 +36,13 @@ public class FeatherlessAiClient {
     private final RestClient restClient;
     private final FeatherlessAiProperties properties;
     private final ObjectMapper objectMapper;
+    private final FeatherlessAiRateLimiter rateLimiter;
 
-    public FeatherlessAiClient(FeatherlessAiProperties properties, ObjectMapper objectMapper) {
+    public FeatherlessAiClient(FeatherlessAiProperties properties, ObjectMapper objectMapper,
+                                FeatherlessAiRateLimiter rateLimiter) {
         this.properties = properties;
         this.objectMapper = objectMapper;
+        this.rateLimiter = rateLimiter;
         this.restClient = RestClient.builder()
                 .baseUrl("https://api.featherless.ai/v1")
                 .defaultHeader("Authorization", "Bearer " + properties.apiKey())
@@ -57,6 +62,10 @@ public class FeatherlessAiClient {
                 "max_tokens", 4096
         );
 
+        if (!rateLimiter.tryAcquire(60, TimeUnit.SECONDS)) {
+            log.warn("FeatherlessAI rate limit: could not acquire permit for place parsing");
+            return Collections.emptyList();
+        }
         try {
             ChatCompletionResponse response = restClient.post()
                     .uri("/chat/completions")
@@ -73,6 +82,8 @@ public class FeatherlessAiClient {
         } catch (Exception e) {
             log.warn("FeatherlessAI API call failed: {}", e.getMessage());
             return Collections.emptyList();
+        } finally {
+            rateLimiter.release();
         }
     }
 
