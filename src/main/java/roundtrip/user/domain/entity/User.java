@@ -102,4 +102,18 @@ public class User extends BaseEntity<UUID> {
         if(locale != null) changeLocale(locale);
         if(mapProvider != null) changeMapProvider(mapProvider);
     }
+
+    public void addCredit(int amount){
+        if(amount <= 0){
+            throw new IllegalArgumentException("적립 금액은 양수여야 합니다.");
+        }
+        this.creditBalance += amount;
+    }
+
+    public void subtractCredit(int amount){
+        if(amount <= 0){
+            throw new IllegalArgumentException("차감 금액은 양수여야 합니다.");
+        }
+        this.creditBalance -= amount;
+    }
 }

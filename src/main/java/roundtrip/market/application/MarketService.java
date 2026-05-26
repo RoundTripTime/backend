@@ -7,8 +7,8 @@ import roundtrip.common.exception.BusinessException;
 import roundtrip.common.exception.ErrorCode;
 import roundtrip.itinerary.domain.entity.Itinerary;
 import roundtrip.itinerary.domain.entity.ItineraryItem;
+import roundtrip.credit.application.CreditService;
 import roundtrip.itinerary.domain.repository.ItineraryRepository;
-import roundtrip.market.domain.entity.CreditHistory;
 import roundtrip.market.domain.entity.MarketPlan;
 import roundtrip.market.domain.repository.MarketRepository;
 import roundtrip.place.domain.entity.Place;
@@ -27,6 +27,7 @@ public class MarketService {
     private final ItineraryRepository itineraryRepository;
     private final PlaceRepository placeRepository;
     private final UserRepository userRepository;
+    private final CreditService creditService;
 
     // ── 목록 조회 ──
 
@@ -102,27 +103,14 @@ public class MarketService {
 
         // 크레딧 차감 (본인 플랜이거나 이미 구매한 경우 차감 안함)
         if (!isOwner && !alreadyPurchased) {
-            User buyer = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-            if (buyer.getCreditBalance() < plan.getCreditPrice()) {
-                throw new BusinessException(ErrorCode.INSUFFICIENT_CREDITS);
-            }
-
-            // 크레딧 차감 기록
-            int newBalance = buyer.getCreditBalance() - plan.getCreditPrice();
-            CreditHistory history = CreditHistory.create(userId, "plan_purchase",
-                -plan.getCreditPrice(), newBalance,
+            // 구매자 차감 (잔액 부족 시 INSUFFICIENT_CREDITS)
+            creditService.spend(userId, "plan_purchase", plan.getCreditPrice(),
                 "플랜 마켓 열람: " + plan.getTitle() + " [" + marketPlanId + "]");
-            marketRepository.saveCredit(history);
 
-            // 판매자에게 크레딧 적립
-            User seller = userRepository.findById(plan.getUserId()).orElse(null);
-            if (seller != null) {
-                int sellerBalance = seller.getCreditBalance() + plan.getCreditPrice();
-                CreditHistory saleHistory = CreditHistory.create(plan.getUserId(), "plan_sale",
-                    plan.getCreditPrice(), sellerBalance,
+            // 판매자 적립 (탈퇴한 판매자는 스킵)
+            if (userRepository.findById(plan.getUserId()).isPresent()) {
+                creditService.earn(plan.getUserId(), "plan_sale", plan.getCreditPrice(),
                     "플랜 마켓 판매: " + plan.getTitle() + " [" + marketPlanId + "]");
-                marketRepository.saveCredit(saleHistory);
             }
 
             // view_count 증가

@@ -4,7 +4,6 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
-import roundtrip.market.domain.entity.CreditHistory;
 import roundtrip.market.domain.entity.MarketPlan;
 import roundtrip.market.domain.repository.MarketRepository;
 
@@ -67,11 +66,6 @@ public class MarketRepositoryImpl implements MarketRepository {
         }
         query.setMaxResults(limit);
         return query.getResultList();
-    }
-
-    @Override
-    public CreditHistory saveCredit(CreditHistory history) {
-        return creditJpa.save(history);
     }
 
     @Override
