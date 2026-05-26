@@ -14,6 +14,7 @@ import roundtrip.candidate.domain.repository.PlaceCandidateRepository;
 import roundtrip.sourcelink.domain.entity.SourceLink;
 import roundtrip.sourcelink.domain.repository.SourceLinkRepository;
 import roundtrip.sourcelink.infrastructure.external.*;
+import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -29,7 +30,9 @@ public class ExtractionPipelineService {
     private final SourceLinkRepository sourceLinkRepository;
     private final PlaceCandidateRepository placeCandidateRepository;
     private final SupadataClient supadataClient;
-    private final GeminiClient geminiClient;
+    private final FeatherlessAiClient featherlessAiClient;
+    private final KakaoLocalClient kakaoLocalClient;
+    private final ObjectMapper objectMapper;
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -51,7 +54,7 @@ public class ExtractionPipelineService {
             updateSourceLinkProcessing(sourceLink, metadata);
 
             String metadataContent = buildMetadataContent(metadata);
-            List<GeminiPlaceParseResult> phase1Result = geminiClient.parsePlaces(metadataContent);
+            List<PlaceParseResult> phase1Result = featherlessAiClient.parsePlaces(metadataContent);
 
             if (!phase1Result.isEmpty()) {
                 List<PlaceCandidate> candidates = normalizePlaces(phase1Result, job);
@@ -67,7 +70,7 @@ public class ExtractionPipelineService {
                 }
 
                 String fullContent = buildFullContent(metadata, extractResult);
-                List<GeminiPlaceParseResult> phase2Result = geminiClient.parsePlaces(fullContent);
+                List<PlaceParseResult> phase2Result = featherlessAiClient.parsePlaces(fullContent);
 
                 if (!phase2Result.isEmpty()) {
                     List<PlaceCandidate> candidates = normalizePlaces(phase2Result, job);
@@ -136,15 +139,26 @@ public class ExtractionPipelineService {
         return sb.toString();
     }
 
-    // 지도 정규화 (Kakao/Google Maps API) — 추후 구현 예정
     @Transactional
-    protected List<PlaceCandidate> normalizePlaces(List<GeminiPlaceParseResult> results, ExtractionJob job) {
+    protected List<PlaceCandidate> normalizePlaces(List<PlaceParseResult> results, ExtractionJob job) {
         List<PlaceCandidate> candidates = new ArrayList<>();
         int rank = 0;
 
-        for (GeminiPlaceParseResult result : results) {
-            // TODO: Kakao Maps API 연동 후 place_id 채우기
+        for (PlaceParseResult result : results) {
             boolean requiresConfirmation = result.confidence() < 0.7;
+            String providerMatchJson = null;
+
+            List<KakaoLocalDocument> kakaoResults = kakaoLocalClient.searchByKeyword(result.name());
+            if (!kakaoResults.isEmpty()) {
+                KakaoLocalDocument topMatch = kakaoResults.get(0);
+                try {
+                    providerMatchJson = objectMapper.writeValueAsString(topMatch);
+                } catch (Exception e) {
+                    log.warn("Failed to serialize Kakao match for place={}: {}", result.name(), e.getMessage());
+                }
+            } else {
+                requiresConfirmation = true;
+            }
 
             PlaceCandidate candidate = PlaceCandidate.create(
                     job.getId(),
@@ -155,7 +169,7 @@ public class ExtractionPipelineService {
                     rank++,
                     requiresConfirmation,
                     result.evidence(),
-                    null
+                    providerMatchJson
             );
             candidates.add(candidate);
         }

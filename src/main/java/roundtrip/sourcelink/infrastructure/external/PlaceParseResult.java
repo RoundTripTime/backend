@@ -1,6 +1,6 @@
 package roundtrip.sourcelink.infrastructure.external;
 
-public record GeminiPlaceParseResult(
+public record PlaceParseResult(
         String name,
         String category,
         double confidence,

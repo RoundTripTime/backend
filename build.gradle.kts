@@ -69,8 +69,18 @@ tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
 	archiveFileName.set("roundtrip.jar")
 }
 
-tasks.withType<Test> {
+tasks.named<Test>("test") {
 	useJUnitPlatform {
 		excludeTags("external")
+	}
+}
+
+tasks.register<Test>("externalTest") {
+	description = "Runs tests tagged with @Tag(\"external\")"
+	group = "verification"
+	testClassesDirs = sourceSets["test"].output.classesDirs
+	classpath = sourceSets["test"].runtimeClasspath
+	useJUnitPlatform {
+		includeTags("external")
 	}
 }

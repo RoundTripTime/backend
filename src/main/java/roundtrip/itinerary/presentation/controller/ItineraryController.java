@@ -17,6 +17,7 @@ import roundtrip.common.exception.ErrorResponse;
 import roundtrip.common.response.ApiResponse;
 import roundtrip.common.response.SuccessCode;
 import roundtrip.itinerary.application.ItineraryService;
+import roundtrip.itinerary.application.PlanningAgentService;
 import roundtrip.itinerary.presentation.dto.*;
 import roundtrip.place.domain.repository.PlaceRepository;
 
@@ -30,6 +31,7 @@ import java.util.UUID;
 public class ItineraryController {
 
     private final ItineraryService itineraryService;
+    private final PlanningAgentService planningAgentService;
     private final PlaceRepository placeRepository;
 
     @Operation(summary = "내 플랜 목록 조회")
@@ -207,6 +209,27 @@ public class ItineraryController {
         var info = itineraryService.getShareLink(user.userId(), itineraryId);
         return ApiResponse.of(SuccessCode.ITINERARY_SHARE_FETCHED,
                 new ItineraryShareResponse(info.shareUrl(), info.visibility()));
+    }
+
+    @Operation(summary = "Planning Agent 메시지 전송",
+            description = "Agent에 메시지를 전송하고 Tool 실행 결과를 반환한다.")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Agent 응답 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "NOT_FOUND",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @PostMapping("/itineraries/{itineraryId}/agent")
+    public ResponseEntity<AgentResponse> agentChat(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable UUID itineraryId,
+            @Valid @RequestBody AgentRequest request) {
+        var history = request.history() != null
+                ? request.history().stream()
+                    .map(h -> new PlanningAgentService.ChatMessage(h.role(), h.content()))
+                    .toList()
+                : List.<PlanningAgentService.ChatMessage>of();
+        var result = planningAgentService.chat(user.userId(), itineraryId, request.message(), history);
+        return ApiResponse.of(SuccessCode.AGENT_MESSAGE_PROCESSED, AgentResponse.from(result));
     }
 
     @Operation(summary = "OTA 예약 링크 생성")
