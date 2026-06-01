@@ -383,7 +383,7 @@ public class PlanningAgentService {
         Place place = placeRepository.findById(placeId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PLACE_NOT_FOUND));
 
-        ItineraryItem item = ItineraryItem.create(itineraryId, placeId, dayIndex, sortOrder, null);
+        ItineraryItem item = ItineraryItem.create(itineraryId, placeId, dayIndex, sortOrder, null, null);
         item = itineraryRepository.saveItem(item);
 
         String json = objectMapper.writeValueAsString(Map.of(
