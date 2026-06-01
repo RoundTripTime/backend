@@ -138,7 +138,8 @@ public class ItineraryController {
             @Valid @RequestBody AddItineraryItemRequest request) {
         var item = itineraryService.addItem(
                 user.userId(), itineraryId, request.placeId(),
-                request.dayIndex(), request.sortOrder(), request.plannedDurationMinutes());
+                request.dayIndex(), request.sortOrder(),
+                request.startTime(), request.endTime());
         String placeName = placeRepository.findById(item.getPlaceId())
                 .map(p -> p.getCanonicalName()).orElse("");
         return ApiResponse.of(SuccessCode.ITINERARY_ITEM_ADDED,
@@ -159,7 +160,8 @@ public class ItineraryController {
             @RequestBody UpdateItineraryItemRequest request) {
         var item = itineraryService.updateItem(
                 user.userId(), itineraryId, itemId,
-                request.dayIndex(), request.sortOrder(), request.plannedDurationMinutes());
+                request.dayIndex(), request.sortOrder(),
+                request.startTime(), request.endTime());
         String placeName = placeRepository.findById(item.getPlaceId())
                 .map(p -> p.getCanonicalName()).orElse("");
         return ApiResponse.of(SuccessCode.ITINERARY_ITEM_UPDATED,

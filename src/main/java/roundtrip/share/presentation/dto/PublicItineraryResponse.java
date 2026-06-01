@@ -1,5 +1,6 @@
 package roundtrip.share.presentation.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 import roundtrip.itinerary.domain.entity.Itinerary;
 import roundtrip.itinerary.domain.entity.ItineraryItem;
@@ -7,6 +8,7 @@ import roundtrip.place.domain.entity.Place;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -41,7 +43,11 @@ public record PublicItineraryResponse(
         @Schema(description = "경도") BigDecimal longitude,
         @Schema(description = "여행 일차", nullable = true) Integer dayIndex,
         @Schema(description = "해당 일차 내 순서", nullable = true) Integer sortOrder,
-        @Schema(description = "예상 체류 시간(분)", nullable = true) Integer plannedDurationMinutes
+        @Schema(description = "예상 체류 시간(분)", nullable = true) Integer plannedDurationMinutes,
+        @Schema(description = "시작 시간", nullable = true, example = "09:00")
+        @JsonFormat(pattern = "HH:mm") LocalTime startTime,
+        @Schema(description = "종료 시간", nullable = true, example = "11:00")
+        @JsonFormat(pattern = "HH:mm") LocalTime endTime
     ) {
         public static PublicItemResponse from(ItemWithPlace iwp) {
             var item = iwp.item();
@@ -50,7 +56,8 @@ public record PublicItineraryResponse(
                 place.getId(), place.getCanonicalName(),
                 place.getCategory() != null ? place.getCategory().name().toLowerCase() : null,
                 place.getLatitude(), place.getLongitude(),
-                item.getDayIndex(), item.getSortOrder(), item.getPlannedDurationMinutes()
+                item.getDayIndex(), item.getSortOrder(), item.getPlannedDurationMinutes(),
+                item.getStartTime(), item.getEndTime()
             );
         }
     }
