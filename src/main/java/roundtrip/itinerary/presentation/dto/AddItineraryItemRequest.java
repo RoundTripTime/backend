@@ -14,8 +14,6 @@ public record AddItineraryItemRequest(
     Integer dayIndex,
     @Schema(description = "해당 일자 내 순서", nullable = true)
     Integer sortOrder,
-    @Schema(description = "예상 체류 시간 (분)", nullable = true)
-    Integer plannedDurationMinutes,
     @Schema(description = "시작 시간 (HH:mm)", nullable = true, example = "09:00")
     LocalTime startTime,
     @Schema(description = "종료 시간 (HH:mm)", nullable = true, example = "11:00")

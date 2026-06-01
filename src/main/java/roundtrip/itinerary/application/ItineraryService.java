@@ -93,24 +93,24 @@ public class ItineraryService {
 
     @Transactional
     public ItineraryItem addItem(UUID userId, UUID itineraryId, UUID placeId,
-                                 Integer dayIndex, Integer sortOrder, Integer plannedDurationMinutes,
+                                 Integer dayIndex, Integer sortOrder,
                                  LocalTime startTime, LocalTime endTime) {
         findOwnedItinerary(userId, itineraryId);
         placeRepository.findById(placeId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PLACE_NOT_FOUND));
         ItineraryItem item = ItineraryItem.create(itineraryId, placeId, dayIndex, sortOrder,
-                plannedDurationMinutes, startTime, endTime);
+                startTime, endTime);
         return itineraryRepository.saveItem(item);
     }
 
     @Transactional
     public ItineraryItem updateItem(UUID userId, UUID itineraryId, UUID itemId,
-                                    Integer dayIndex, Integer sortOrder, Integer plannedDurationMinutes,
+                                    Integer dayIndex, Integer sortOrder,
                                     LocalTime startTime, LocalTime endTime) {
         findOwnedItinerary(userId, itineraryId);
         ItineraryItem item = itineraryRepository.findItemByIdAndItineraryId(itemId, itineraryId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ITINERARY_ITEM_NOT_FOUND));
-        item.update(dayIndex, sortOrder, plannedDurationMinutes, startTime, endTime);
+        item.update(dayIndex, sortOrder, startTime, endTime);
         return itineraryRepository.saveItem(item);
     }
 
