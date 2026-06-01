@@ -1,8 +1,10 @@
 package roundtrip.itinerary.presentation.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 import roundtrip.itinerary.domain.entity.ItineraryItem;
 
+import java.time.LocalTime;
 import java.util.UUID;
 
 @Schema(description = "플랜 아이템 응답")
@@ -18,13 +20,20 @@ public record ItineraryItemResponse(
     @Schema(description = "해당 일차 내 순서", nullable = true)
     Integer sortOrder,
     @Schema(description = "예상 체류 시간 (분)", nullable = true)
-    Integer plannedDurationMinutes
+    Integer plannedDurationMinutes,
+    @Schema(description = "시작 시간", nullable = true, example = "09:00")
+    @JsonFormat(pattern = "HH:mm")
+    LocalTime startTime,
+    @Schema(description = "종료 시간", nullable = true, example = "11:00")
+    @JsonFormat(pattern = "HH:mm")
+    LocalTime endTime
 ) {
     public static ItineraryItemResponse from(ItineraryItem item, String placeName) {
         return new ItineraryItemResponse(
                 item.getId(), item.getPlaceId(), placeName,
                 item.getDayIndex(), item.getSortOrder(),
-                item.getPlannedDurationMinutes()
+                item.getPlannedDurationMinutes(),
+                item.getStartTime(), item.getEndTime()
         );
     }
 }

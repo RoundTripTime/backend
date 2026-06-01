@@ -655,6 +655,99 @@ class ItineraryIntegrationTest {
             .andExpect(status().isBadRequest());
     }
 
+    // ──────────────── start_time / end_time ────────────────
+
+    @Test
+    void addItem_withStartTimeAndEndTime_returns201() throws Exception {
+        String token = signIn();
+        UUID itineraryId = createItinerary(token);
+        UUID placeId = insertTestPlace("하라주쿠");
+
+        var body = Map.of(
+            "place_id", placeId.toString(),
+            "day_index", 1,
+            "sort_order", 1,
+            "planned_duration_minutes", 120,
+            "start_time", "09:00",
+            "end_time", "11:00"
+        );
+
+        mockMvc.perform(post("/itineraries/" + itineraryId + "/items")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.place_name").value("하라주쿠"))
+            .andExpect(jsonPath("$.start_time").value("09:00"))
+            .andExpect(jsonPath("$.end_time").value("11:00"));
+    }
+
+    @Test
+    void addItem_withoutTime_returnsNullTimes() throws Exception {
+        String token = signIn();
+        UUID itineraryId = createItinerary(token);
+        UUID placeId = insertTestPlace("아키하바라");
+
+        var body = Map.of("place_id", placeId.toString());
+
+        mockMvc.perform(post("/itineraries/" + itineraryId + "/items")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.start_time").doesNotExist())
+            .andExpect(jsonPath("$.end_time").doesNotExist());
+    }
+
+    @Test
+    void updateItem_setStartTimeAndEndTime_returnsUpdated() throws Exception {
+        String token = signIn();
+        UUID itineraryId = createItinerary(token);
+        UUID placeId = insertTestPlace("긴자");
+        UUID itemId = addItemToItinerary(token, itineraryId, placeId, 1, 1, 60);
+
+        var body = Map.of(
+            "day_index", 1,
+            "sort_order", 1,
+            "planned_duration_minutes", 90,
+            "start_time", "14:00",
+            "end_time", "15:30"
+        );
+
+        mockMvc.perform(patch("/itineraries/" + itineraryId + "/items/" + itemId)
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.start_time").value("14:00"))
+            .andExpect(jsonPath("$.end_time").value("15:30"));
+    }
+
+    @Test
+    void getItinerary_itemsIncludeTimeFields() throws Exception {
+        String token = signIn();
+        UUID itineraryId = createItinerary(token);
+        UUID placeId = insertTestPlace("롯폰기");
+
+        var body = Map.of(
+            "place_id", placeId.toString(),
+            "day_index", 1,
+            "sort_order", 1,
+            "start_time", "18:00",
+            "end_time", "21:00"
+        );
+        mockMvc.perform(post("/itineraries/" + itineraryId + "/items")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+            .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/itineraries/" + itineraryId)
+                .header("Authorization", "Bearer " + token))
+            .andExpect(jsonPath("$.items[0].start_time").value("18:00"))
+            .andExpect(jsonPath("$.items[0].end_time").value("21:00"));
+    }
+
     // ──────────────── helpers ────────────────
 
     private UUID insertTestPlace(String name) {
