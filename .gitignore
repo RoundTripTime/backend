@@ -35,6 +35,7 @@ HELP.md
 *.jks
 google-services.json
 firebase-service-account*.json
+src/main/resources/application-local.yml
 
 # -----------------------------------------------
 # Claude Code

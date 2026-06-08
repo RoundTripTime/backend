@@ -75,7 +75,22 @@ tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
 
 tasks.named<Test>("test") {
 	useJUnitPlatform {
-		excludeTags("external")
+		excludeTags("external", "experiment")
+	}
+}
+
+tasks.register<Test>("experimentTest") {
+	description = "Runs AI pipeline experiments (latency / reproducibility) — calls real external APIs."
+	group = "verification"
+	testClassesDirs = sourceSets["test"].output.classesDirs
+	classpath = sourceSets["test"].runtimeClasspath
+	useJUnitPlatform {
+		includeTags("experiment")
+	}
+	outputs.upToDateWhen { false }
+	testLogging {
+		showStandardStreams = true
+		events("passed", "failed", "skipped")
 	}
 }
 
