@@ -6,7 +6,7 @@ import com.google.firebase.FirebaseOptions;
 import com.google.firebase.messaging.FirebaseMessaging;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
@@ -21,7 +21,7 @@ import java.io.InputStream;
  */
 @Slf4j
 @Configuration
-@ConditionalOnProperty(prefix = "firebase", name = "credentials-path")
+@ConditionalOnExpression("'${firebase.credentials-path:}' != ''")
 @RequiredArgsConstructor
 public class FirebaseConfig {
 
