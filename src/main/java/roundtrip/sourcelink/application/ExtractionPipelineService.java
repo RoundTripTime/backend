@@ -80,8 +80,6 @@ public class ExtractionPipelineService {
                 }
             }
 
-            // TODO: 알림 전송 (Notification 도메인 구현 후 추가 예정)
-
         } catch (Exception e) {
             log.error("Pipeline failed for jobId={}, sourceLinkId={}", jobId, sourceLink.getId(), e);
             failJob(job, sourceLink, "INTERNAL_ERROR");
