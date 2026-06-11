@@ -103,6 +103,8 @@ public enum SuccessCode {
     // 알림
     NOTIFICATION_LIST_FETCHED(HttpStatus.OK, "알림 목록 조회에 성공했습니다."),
     NOTIFICATION_READ(HttpStatus.OK, "알림 읽음 처리에 성공했습니다."),
+    DEVICE_TOKEN_REGISTERED(HttpStatus.CREATED, "디바이스 토큰 등록에 성공했습니다."),
+    DEVICE_TOKEN_DELETED(HttpStatus.OK, "디바이스 토큰 삭제에 성공했습니다."),
 
     // 공개 공유
     PUBLIC_ITINERARY_FETCHED(HttpStatus.OK, "공유 플랜 조회에 성공했습니다."),

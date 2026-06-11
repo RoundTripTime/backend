@@ -93,7 +93,11 @@ jobs:
           AWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }}
           MYREALTRIP_API_KEY=${{ secrets.MYREALTRIP_API_KEY }}
           AUTH_TEST_SECRET=${{ secrets.AUTH_TEST_SECRET }}
+          FIREBASE_CREDENTIALS_PATH=file:/opt/roundtrip/firebase-service-account.json
           EOF
+          echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT_B64 }}" | base64 -d | sudo tee /opt/roundtrip/firebase-service-account.json > /dev/null
+          sudo chown roundtrip:roundtrip /opt/roundtrip/firebase-service-account.json
+          sudo chmod 600 /opt/roundtrip/firebase-service-account.json
           ENVEOF
 
       - name: Deploy JAR and script to EC2
