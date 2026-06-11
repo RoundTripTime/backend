@@ -96,3 +96,11 @@ myrealtrip:
 
 app:
   share-base-url: ${APP_SHARE_BASE_URL:https://app.example.com/share/collections/}
+
+firebase:
+  credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
+
+notification:
+  review-reminder:
+    delay-minutes: ${NOTIFICATION_REVIEW_REMINDER_DELAY_MINUTES:30}
+    scan-interval-ms: ${NOTIFICATION_REVIEW_REMINDER_SCAN_INTERVAL_MS:300000}
