@@ -11,6 +11,9 @@ import roundtrip.extract.domain.entity.ExtractionJob;
 import roundtrip.extract.domain.repository.ExtractionJobRepository;
 import roundtrip.candidate.domain.entity.PlaceCandidate;
 import roundtrip.candidate.domain.repository.PlaceCandidateRepository;
+import roundtrip.place.domain.entity.Place;
+import roundtrip.place.domain.entity.PlaceCategory;
+import roundtrip.place.domain.repository.PlaceRepository;
 import roundtrip.sourcelink.domain.entity.SourceLink;
 import roundtrip.sourcelink.domain.repository.SourceLinkRepository;
 import roundtrip.sourcelink.infrastructure.external.*;
@@ -29,6 +32,7 @@ public class ExtractionPipelineService {
     private final ExtractionJobRepository extractionJobRepository;
     private final SourceLinkRepository sourceLinkRepository;
     private final PlaceCandidateRepository placeCandidateRepository;
+    private final PlaceRepository placeRepository;
     private final SupadataClient supadataClient;
     private final FeatherlessAiClient featherlessAiClient;
     private final KakaoLocalClient kakaoLocalClient;
@@ -145,10 +149,13 @@ public class ExtractionPipelineService {
         for (PlaceParseResult result : results) {
             boolean requiresConfirmation = result.confidence() < 0.7;
             String providerMatchJson = null;
+            UUID placeId = null;
 
             List<KakaoLocalDocument> kakaoResults = kakaoLocalClient.searchByKeyword(result.name());
             if (!kakaoResults.isEmpty()) {
                 KakaoLocalDocument topMatch = kakaoResults.get(0);
+                Place place = findOrCreatePlace(topMatch, result.evidence());
+                placeId = place.getId();
                 try {
                     providerMatchJson = objectMapper.writeValueAsString(topMatch);
                 } catch (Exception e) {
@@ -160,7 +167,7 @@ public class ExtractionPipelineService {
 
             PlaceCandidate candidate = PlaceCandidate.create(
                     job.getId(),
-                    null,
+                    placeId,
                     result.name(),
                     result.category(),
                     BigDecimal.valueOf(result.confidence()),
@@ -173,6 +180,30 @@ public class ExtractionPipelineService {
         }
 
         return placeCandidateRepository.saveAll(candidates);
+    }
+
+    private Place findOrCreatePlace(KakaoLocalDocument document, String evidence) {
+        return placeRepository.findByKakaoPlaceId(document.id())
+                .orElseGet(() -> placeRepository.save(Place.create(
+                        document.placeName(),
+                        document.y() != null ? new BigDecimal(document.y()) : null,
+                        document.x() != null ? new BigDecimal(document.x()) : null,
+                        mapKakaoCategory(document.categoryGroupCode()),
+                        "KR",
+                        document.id(),
+                        evidence
+                )));
+    }
+
+    private PlaceCategory mapKakaoCategory(String code) {
+        if (code == null) return PlaceCategory.ETC;
+        return switch (code) {
+            case "FD6" -> PlaceCategory.RESTAURANT;
+            case "CE7" -> PlaceCategory.CAFE;
+            case "AD5" -> PlaceCategory.ACCOMMODATION;
+            case "AT4" -> PlaceCategory.ATTRACTION;
+            default -> PlaceCategory.ETC;
+        };
     }
 
     private String nullSafe(String value) {
