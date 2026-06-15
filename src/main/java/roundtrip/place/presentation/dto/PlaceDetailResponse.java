@@ -33,6 +33,14 @@ public record PlaceDetailResponse(
     @Schema(description = "썸네일 출처", example = "flickr",
         allowableValues = {"flickr", "wikimedia", "google_places"})
     String thumbnailSource,
+    @Schema(description = "이미지 저작자 표시")
+    String thumbnailAttribution,
+    @Schema(description = "이미지 라이선스")
+    String thumbnailLicense,
+    @Schema(description = "이미지 라이선스 URL")
+    String thumbnailLicenseUrl,
+    @Schema(description = "이미지 원본 정보 페이지")
+    String thumbnailSourceUrl,
     @Schema(description = "이 장소가 추출된 원본 영상 정보")
     PlaceSourceLinkInfo sourceLink,
     @Schema(description = "장소 추출 근거 텍스트", example = "캡션: 시부야 교차로 최고의 뷰포인트")
@@ -54,6 +62,10 @@ public record PlaceDetailResponse(
                 p.getKakaoPlaceId(),
                 p.getThumbnailUrl(),
                 p.getThumbnailSource() != null ? p.getThumbnailSource().name().toLowerCase() : null,
+                p.getThumbnailAttribution(),
+                p.getThumbnailLicense(),
+                p.getThumbnailLicenseUrl(),
+                p.getThumbnailSourceUrl(),
                 PlaceSourceLinkInfo.from(sl),
                 p.getEvidence(),
                 p.getCreatedAt()

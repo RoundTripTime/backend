@@ -42,7 +42,6 @@ public class PlaceService {
         return new PlaceDetailResult(place, sourceLink);
     }
 
-    @Transactional
     public List<Place> searchPlaces(String query, String provider) {
         List<KakaoLocalDocument> docs = kakaoLocalClient.searchByKeyword(query);
         return docs.stream()
@@ -107,9 +106,9 @@ public class PlaceService {
     }
 
     private Place findOrCreateFromKakao(KakaoLocalDocument doc) {
-        return placeRepository.findByKakaoPlaceId(doc.id())
+        Place place = placeRepository.findByKakaoPlaceId(doc.id())
                 .orElseGet(() -> {
-                    Place place = Place.create(
+                    Place created = Place.create(
                             doc.placeName(),
                             doc.y() != null ? new BigDecimal(doc.y()) : null,
                             doc.x() != null ? new BigDecimal(doc.x()) : null,
@@ -118,10 +117,12 @@ public class PlaceService {
                             doc.id(),
                             null
                     );
-                    Place saved = placeRepository.save(place);
-                    thumbnailFetcher.fetchAndUpdate(saved.getId());
-                    return saved;
+                    return placeRepository.save(created);
                 });
+        if (place.getThumbnailSource() == null) {
+            thumbnailFetcher.fetchAndUpdate(place.getId());
+        }
+        return place;
     }
 
     private PlaceCategory mapKakaoCategory(String code) {
