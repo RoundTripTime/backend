@@ -10,6 +10,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import roundtrip.place.domain.entity.Place;
 import roundtrip.place.domain.entity.PlaceCategory;
 import roundtrip.place.domain.entity.ThumbnailSource;
+import roundtrip.place.domain.entity.ThumbnailImage;
 import roundtrip.place.domain.repository.PlaceRepository;
 import roundtrip.place.infrastructure.external.GooglePlacesClient;
 import roundtrip.place.infrastructure.external.WikimediaClient;
@@ -44,36 +45,47 @@ class ThumbnailFetcherTest {
     @Test
     void fetchAndUpdate_wikimediaSuccess_setsThumbnailFromWikimedia() {
         when(placeRepository.findById(placeId)).thenReturn(Optional.of(place));
-        when(wikimediaClient.fetchImageUrl("경복궁"))
-                .thenReturn(Optional.of("https://upload.wikimedia.org/thumb/gyeongbokgung.jpg"));
+        when(wikimediaClient.fetchImage("경복궁"))
+                .thenReturn(Optional.of(new ThumbnailImage(
+                        "https://upload.wikimedia.org/thumb/gyeongbokgung.jpg",
+                        "Photographer", "CC BY-SA 4.0",
+                        "https://creativecommons.org/licenses/by-sa/4.0",
+                        "https://commons.wikimedia.org/wiki/File:test.jpg")));
 
         thumbnailFetcher.fetchAndUpdate(placeId);
 
         assertThat(place.getThumbnailUrl()).isEqualTo("https://upload.wikimedia.org/thumb/gyeongbokgung.jpg");
         assertThat(place.getThumbnailSource()).isEqualTo(ThumbnailSource.WIKIMEDIA);
+        assertThat(place.getThumbnailAttribution()).isEqualTo("Photographer");
+        assertThat(place.getThumbnailLicense()).isEqualTo("CC BY-SA 4.0");
+        assertThat(place.getThumbnailLicenseUrl())
+                .isEqualTo("https://creativecommons.org/licenses/by-sa/4.0");
         verify(placeRepository).save(place);
-        verify(googlePlacesClient, never()).fetchImageUrl(any());
+        verify(googlePlacesClient, never()).fetchImage(any());
     }
 
     @Test
     void fetchAndUpdate_wikimediaFails_fallsBackToGooglePlaces() {
         when(placeRepository.findById(placeId)).thenReturn(Optional.of(place));
-        when(wikimediaClient.fetchImageUrl("경복궁")).thenReturn(Optional.empty());
-        when(googlePlacesClient.fetchImageUrl("경복궁"))
-                .thenReturn(Optional.of("https://places.googleapis.com/v1/photo/media?key=abc"));
+        when(wikimediaClient.fetchImage("경복궁")).thenReturn(Optional.empty());
+        when(googlePlacesClient.fetchImage("경복궁"))
+                .thenReturn(Optional.of(new ThumbnailImage(
+                        "https://lh3.googleusercontent.com/photo", "Contributor", null, null,
+                        "https://www.google.com/maps/contrib/example")));
 
         thumbnailFetcher.fetchAndUpdate(placeId);
 
-        assertThat(place.getThumbnailUrl()).isEqualTo("https://places.googleapis.com/v1/photo/media?key=abc");
+        assertThat(place.getThumbnailUrl()).isEqualTo("https://lh3.googleusercontent.com/photo");
         assertThat(place.getThumbnailSource()).isEqualTo(ThumbnailSource.GOOGLE_PLACES);
+        assertThat(place.getThumbnailAttribution()).isEqualTo("Contributor");
         verify(placeRepository).save(place);
     }
 
     @Test
     void fetchAndUpdate_bothFail_marksAsNone() {
         when(placeRepository.findById(placeId)).thenReturn(Optional.of(place));
-        when(wikimediaClient.fetchImageUrl("경복궁")).thenReturn(Optional.empty());
-        when(googlePlacesClient.fetchImageUrl("경복궁")).thenReturn(Optional.empty());
+        when(wikimediaClient.fetchImage("경복궁")).thenReturn(Optional.empty());
+        when(googlePlacesClient.fetchImage("경복궁")).thenReturn(Optional.empty());
 
         thumbnailFetcher.fetchAndUpdate(placeId);
 
@@ -89,8 +101,8 @@ class ThumbnailFetcherTest {
 
         thumbnailFetcher.fetchAndUpdate(placeId);
 
-        verify(wikimediaClient, never()).fetchImageUrl(any());
-        verify(googlePlacesClient, never()).fetchImageUrl(any());
+        verify(wikimediaClient, never()).fetchImage(any());
+        verify(googlePlacesClient, never()).fetchImage(any());
         verify(placeRepository, never()).save(any());
     }
 
@@ -101,8 +113,8 @@ class ThumbnailFetcherTest {
 
         thumbnailFetcher.fetchAndUpdate(placeId);
 
-        verify(wikimediaClient, never()).fetchImageUrl(any());
-        verify(googlePlacesClient, never()).fetchImageUrl(any());
+        verify(wikimediaClient, never()).fetchImage(any());
+        verify(googlePlacesClient, never()).fetchImage(any());
         verify(placeRepository, never()).save(any());
     }
 
@@ -112,7 +124,7 @@ class ThumbnailFetcherTest {
 
         thumbnailFetcher.fetchAndUpdate(placeId);
 
-        verify(wikimediaClient, never()).fetchImageUrl(any());
+        verify(wikimediaClient, never()).fetchImage(any());
         verify(placeRepository, never()).save(any());
     }
 }

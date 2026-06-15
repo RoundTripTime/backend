@@ -42,12 +42,24 @@ public class Place extends BaseEntity<UUID> {
     @Column(name = "kakao_place_id", length = 255)
     private String kakaoPlaceId;
 
-    @Column(name = "thumbnail_url", length = 500)
+    @Column(name = "thumbnail_url", columnDefinition = "TEXT")
     private String thumbnailUrl;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "thumbnail_source", length = 20)
     private ThumbnailSource thumbnailSource;
+
+    @Column(name = "thumbnail_attribution", columnDefinition = "TEXT")
+    private String thumbnailAttribution;
+
+    @Column(name = "thumbnail_license", length = 100)
+    private String thumbnailLicense;
+
+    @Column(name = "thumbnail_license_url", columnDefinition = "TEXT")
+    private String thumbnailLicenseUrl;
+
+    @Column(name = "thumbnail_source_url", columnDefinition = "TEXT")
+    private String thumbnailSourceUrl;
 
     @Column(name = "evidence", columnDefinition = "TEXT")
     private String evidence;
@@ -55,6 +67,19 @@ public class Place extends BaseEntity<UUID> {
     public void updateThumbnail(String thumbnailUrl, ThumbnailSource thumbnailSource) {
         this.thumbnailUrl = thumbnailUrl;
         this.thumbnailSource = thumbnailSource;
+        this.thumbnailAttribution = null;
+        this.thumbnailLicense = null;
+        this.thumbnailLicenseUrl = null;
+        this.thumbnailSourceUrl = null;
+    }
+
+    public void applyThumbnail(ThumbnailImage image, ThumbnailSource thumbnailSource) {
+        this.thumbnailUrl = image.url();
+        this.thumbnailSource = thumbnailSource;
+        this.thumbnailAttribution = image.attribution();
+        this.thumbnailLicense = image.license();
+        this.thumbnailLicenseUrl = image.licenseUrl();
+        this.thumbnailSourceUrl = image.sourceUrl();
     }
 
     public static Place create(String canonicalName, BigDecimal latitude, BigDecimal longitude,

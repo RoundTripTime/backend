@@ -14,6 +14,7 @@ import roundtrip.candidate.domain.repository.PlaceCandidateRepository;
 import roundtrip.place.domain.entity.Place;
 import roundtrip.place.domain.entity.PlaceCategory;
 import roundtrip.place.domain.repository.PlaceRepository;
+import roundtrip.place.application.ThumbnailFetcher;
 import roundtrip.sourcelink.domain.entity.SourceLink;
 import roundtrip.sourcelink.domain.repository.SourceLinkRepository;
 import roundtrip.sourcelink.infrastructure.external.*;
@@ -36,6 +37,7 @@ public class ExtractionPipelineService {
     private final SupadataClient supadataClient;
     private final FeatherlessAiClient featherlessAiClient;
     private final KakaoLocalClient kakaoLocalClient;
+    private final ThumbnailFetcher thumbnailFetcher;
     private final ObjectMapper objectMapper;
 
     @Async
@@ -141,7 +143,6 @@ public class ExtractionPipelineService {
         return sb.toString();
     }
 
-    @Transactional
     protected List<PlaceCandidate> normalizePlaces(List<PlaceParseResult> results, ExtractionJob job) {
         List<PlaceCandidate> candidates = new ArrayList<>();
         int rank = 0;
@@ -183,16 +184,22 @@ public class ExtractionPipelineService {
     }
 
     private Place findOrCreatePlace(KakaoLocalDocument document, String evidence) {
-        return placeRepository.findByKakaoPlaceId(document.id())
-                .orElseGet(() -> placeRepository.save(Place.create(
-                        document.placeName(),
-                        document.y() != null ? new BigDecimal(document.y()) : null,
-                        document.x() != null ? new BigDecimal(document.x()) : null,
-                        mapKakaoCategory(document.categoryGroupCode()),
-                        "KR",
-                        document.id(),
-                        evidence
-                )));
+        Place place = placeRepository.findByKakaoPlaceId(document.id())
+                .orElseGet(() -> {
+                    return placeRepository.save(Place.create(
+                            document.placeName(),
+                            document.y() != null ? new BigDecimal(document.y()) : null,
+                            document.x() != null ? new BigDecimal(document.x()) : null,
+                            mapKakaoCategory(document.categoryGroupCode()),
+                            "KR",
+                            document.id(),
+                            evidence
+                    ));
+                });
+        if (place.getThumbnailSource() == null) {
+            thumbnailFetcher.fetchAndUpdate(place.getId());
+        }
+        return place;
     }
 
     private PlaceCategory mapKakaoCategory(String code) {

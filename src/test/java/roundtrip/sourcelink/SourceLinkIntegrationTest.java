@@ -23,6 +23,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import roundtrip.auth.domain.SocialIdentity;
 import roundtrip.auth.infrastructure.social.SocialIdTokenVerifierRegistry;
+import roundtrip.place.application.ThumbnailFetcher;
 import roundtrip.sourcelink.infrastructure.external.FeatherlessAiClient;
 import roundtrip.sourcelink.infrastructure.external.KakaoLocalClient;
 import roundtrip.sourcelink.infrastructure.external.PlaceParseResult;
@@ -78,6 +79,9 @@ class SourceLinkIntegrationTest {
 
     @MockitoBean
     KakaoLocalClient kakaoLocalClient;
+
+    @MockitoBean
+    ThumbnailFetcher thumbnailFetcher;
 
     @Autowired WebApplicationContext context;
     @Autowired JsonMapper objectMapper;
