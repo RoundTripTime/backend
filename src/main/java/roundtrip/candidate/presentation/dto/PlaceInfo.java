@@ -24,7 +24,17 @@ public record PlaceInfo(
     @Schema(description = "Kakao Maps 장소 ID", example = "12345678")
     String kakaoPlaceId,
     @Schema(description = "장소 썸네일 URL")
-    String thumbnailUrl
+    String thumbnailUrl,
+    @Schema(description = "썸네일 출처")
+    String thumbnailSource,
+    @Schema(description = "이미지 저작자 표시")
+    String thumbnailAttribution,
+    @Schema(description = "이미지 라이선스")
+    String thumbnailLicense,
+    @Schema(description = "이미지 라이선스 URL")
+    String thumbnailLicenseUrl,
+    @Schema(description = "이미지 원본 정보 페이지")
+    String thumbnailSourceUrl
 ) {
     public static PlaceInfo from(Place place) {
         if (place == null) return null;
@@ -36,7 +46,12 @@ public record PlaceInfo(
                 place.getCategory() != null ? place.getCategory().name().toLowerCase() : null,
                 place.getCountryCode(),
                 place.getKakaoPlaceId(),
-                place.getThumbnailUrl()
+                place.getThumbnailUrl(),
+                place.getThumbnailSource() != null ? place.getThumbnailSource().name().toLowerCase() : null,
+                place.getThumbnailAttribution(),
+                place.getThumbnailLicense(),
+                place.getThumbnailLicenseUrl(),
+                place.getThumbnailSourceUrl()
         );
     }
 }

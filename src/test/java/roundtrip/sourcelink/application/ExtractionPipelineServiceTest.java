@@ -17,6 +17,7 @@ import roundtrip.sourcelink.domain.repository.SourceLinkRepository;
 import roundtrip.sourcelink.infrastructure.external.FeatherlessAiClient;
 import roundtrip.sourcelink.infrastructure.external.KakaoLocalClient;
 import roundtrip.sourcelink.infrastructure.external.KakaoLocalDocument;
+import roundtrip.place.application.ThumbnailFetcher;
 import roundtrip.sourcelink.infrastructure.external.PlaceParseResult;
 import roundtrip.sourcelink.infrastructure.external.SupadataClient;
 import tools.jackson.databind.ObjectMapper;
@@ -27,7 +28,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ExtractionPipelineServiceTest {
@@ -40,6 +41,7 @@ class ExtractionPipelineServiceTest {
     @Mock FeatherlessAiClient featherlessAiClient;
     @Mock KakaoLocalClient kakaoLocalClient;
     @Mock ObjectMapper objectMapper;
+    @Mock ThumbnailFetcher thumbnailFetcher;
 
     @InjectMocks ExtractionPipelineService service;
 
@@ -73,6 +75,7 @@ class ExtractionPipelineServiceTest {
             assertThat(candidate.getPlaceId()).isEqualTo(placeId);
             assertThat(candidate.getProviderMatchJson()).contains("12345678");
         });
+        verify(thumbnailFetcher).fetchAndUpdate(placeId);
     }
 
     @Test
@@ -98,5 +101,6 @@ class ExtractionPipelineServiceTest {
         assertThat(candidates).singleElement()
                 .extracting(PlaceCandidate::getPlaceId)
                 .isEqualTo(placeId);
+        verify(thumbnailFetcher).fetchAndUpdate(placeId);
     }
 }
