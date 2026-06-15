@@ -6,8 +6,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import roundtrip.common.infrastructure.FeatherlessAiRateLimiter;
+import roundtrip.common.infrastructure.FeatherlessAiResponseSanitizer;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -87,35 +90,67 @@ public class FeatherlessAiClient {
         }
     }
 
-    private List<PlaceParseResult> parseJsonResponse(String text) {
+    List<PlaceParseResult> parseJsonResponse(String text) {
         try {
-            String json = text.trim();
-            if (json.contains("```json")) {
-                int start = json.indexOf("```json") + 7;
-                int end = json.lastIndexOf("```");
-                if (end > start) {
-                    json = json.substring(start, end).trim();
+            String sanitized = FeatherlessAiResponseSanitizer.stripThinking(text);
+            for (String json : findJsonObjects(sanitized)) {
+                JsonNode root;
+                try {
+                    root = objectMapper.readTree(json);
+                } catch (Exception ignored) {
+                    continue;
                 }
-            } else if (json.contains("```")) {
-                int start = json.indexOf("```") + 3;
-                int end = json.lastIndexOf("```");
-                if (end > start) {
-                    json = json.substring(start, end).trim();
+
+                var placesNode = root.get("places");
+                if (placesNode != null && placesNode.isArray()) {
+                    return objectMapper.readerForListOf(PlaceParseResult.class)
+                            .readValue(placesNode);
                 }
             }
-
-            var root = objectMapper.readTree(json);
-            var placesNode = root.get("places");
-            if (placesNode == null || !placesNode.isArray()) {
-                return Collections.emptyList();
-            }
-
-            return objectMapper.readerForListOf(PlaceParseResult.class)
-                    .readValue(placesNode);
         } catch (Exception e) {
             log.warn("Failed to parse FeatherlessAI JSON response: {}", e.getMessage());
-            return Collections.emptyList();
         }
+        return Collections.emptyList();
+    }
+
+    private List<String> findJsonObjects(String text) {
+        List<String> objects = new ArrayList<>();
+        boolean inString = false;
+        boolean escaped = false;
+        int depth = 0;
+        int start = -1;
+
+        for (int i = 0; i < text.length(); i++) {
+            char current = text.charAt(i);
+
+            if (inString) {
+                if (escaped) {
+                    escaped = false;
+                } else if (current == '\\') {
+                    escaped = true;
+                } else if (current == '"') {
+                    inString = false;
+                }
+                continue;
+            }
+
+            if (current == '"') {
+                inString = true;
+            } else if (current == '{') {
+                if (depth == 0) {
+                    start = i;
+                }
+                depth++;
+            } else if (current == '}' && depth > 0) {
+                depth--;
+                if (depth == 0 && start >= 0) {
+                    objects.add(text.substring(start, i + 1));
+                    start = -1;
+                }
+            }
+        }
+
+        return objects;
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
