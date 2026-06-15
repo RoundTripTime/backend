@@ -25,6 +25,7 @@ import roundtrip.auth.domain.SocialIdentity;
 import roundtrip.auth.infrastructure.social.SocialIdTokenVerifierRegistry;
 import roundtrip.sourcelink.infrastructure.external.FeatherlessAiClient;
 import roundtrip.sourcelink.infrastructure.external.KakaoLocalClient;
+import roundtrip.sourcelink.infrastructure.external.PlaceParseResult;
 import roundtrip.sourcelink.infrastructure.external.SupadataMetadataResponse;
 import roundtrip.sourcelink.infrastructure.external.SupadataExtractResponse;
 import roundtrip.sourcelink.infrastructure.external.SupadataExtractResultResponse;
@@ -35,6 +36,7 @@ import tools.jackson.databind.json.JsonMapper;
 import java.util.List;
 import java.util.Map;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -250,6 +252,47 @@ class SourceLinkIntegrationTest {
             .andExpect(jsonPath("$.job_id").value(jobId))
             .andExpect(jsonPath("$.job_status").isNotEmpty())
             .andExpect(jsonPath("$.signal_count").value(0));
+    }
+
+    @Test
+    void getJob_featherlessReturnsPlaces_eventuallyReturnsDone() throws Exception {
+        when(featherlessAiClient.parsePlaces(any()))
+            .thenReturn(List.of(new PlaceParseResult(
+                "경복궁", "attraction", 0.95, "영상에서 경복궁을 소개함"
+            )));
+
+        MvcResult submitResult = mockMvc.perform(post("/source-links")
+                .header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(
+                    Map.of("url", "https://youtube.com/shorts/job-done-test")
+                )))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> submitBody = objectMapper.readValue(
+            submitResult.getResponse().getContentAsString(), Map.class);
+        String jobId = (String) submitBody.get("job_id");
+
+        for (int attempt = 0; attempt < 40; attempt++) {
+            MvcResult jobResult = mockMvc.perform(get("/jobs/" + jobId)
+                    .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andReturn();
+            @SuppressWarnings("unchecked")
+            Map<String, Object> jobBody = objectMapper.readValue(
+                jobResult.getResponse().getContentAsString(), Map.class);
+
+            if ("done".equals(jobBody.get("job_status"))) {
+                assertThat(jobBody.get("signal_count")).isEqualTo(1);
+                assertThat(jobBody.get("error_code")).isNull();
+                return;
+            }
+            Thread.sleep(50);
+        }
+
+        throw new AssertionError("Job did not reach done status");
     }
 
     @Test

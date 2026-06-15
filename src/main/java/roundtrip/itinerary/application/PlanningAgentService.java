@@ -8,6 +8,7 @@ import org.springframework.web.client.RestClient;
 import roundtrip.common.exception.BusinessException;
 import roundtrip.common.exception.ErrorCode;
 import roundtrip.common.infrastructure.FeatherlessAiRateLimiter;
+import roundtrip.common.infrastructure.FeatherlessAiResponseSanitizer;
 import roundtrip.itinerary.domain.entity.Itinerary;
 import roundtrip.itinerary.domain.entity.ItineraryItem;
 import roundtrip.itinerary.domain.repository.ItineraryRepository;
@@ -228,7 +229,8 @@ public class PlanningAgentService {
                     response = objectMapper.readValue(rawResponse, ChatCompletionResponse.class);
                     if (response != null && response.choices() != null && !response.choices().isEmpty()) {
                         var msg = response.choices().get(0).message();
-                        if ((msg.content() != null && !msg.content().isBlank())
+                        String visibleContent = FeatherlessAiResponseSanitizer.stripThinking(msg.content());
+                        if (!visibleContent.isBlank()
                                 || (msg.toolCalls() != null && !msg.toolCalls().isEmpty())) {
                             break;
                         }
@@ -243,7 +245,7 @@ public class PlanningAgentService {
                 }
 
                 var choice = response.choices().get(0);
-                String content = choice.message().content() != null ? choice.message().content() : "";
+                String content = FeatherlessAiResponseSanitizer.stripThinking(choice.message().content());
                 List<ToolCall> toolCalls = choice.message().toolCalls();
                 log.debug("Agent round {}: content={}, toolCalls={}", round,
                         content.length() > 200 ? content.substring(0, 200) + "..." : content,
