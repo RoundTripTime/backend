@@ -90,6 +90,12 @@ google:
     api-key: ${GOOGLE_PLACES_API_KEY:}
     base-url: https://places.googleapis.com
 
+naver:
+  image-search:
+    client-id: ${NAVER_CLIENT_ID:}
+    client-secret: ${NAVER_CLIENT_SECRET:}
+    base-url: https://openapi.naver.com
+
 myrealtrip:
   api-key: ${MYREALTRIP_API_KEY:}
   base-url: https://partner-ext-api.myrealtrip.com

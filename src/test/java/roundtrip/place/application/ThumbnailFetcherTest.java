@@ -13,6 +13,7 @@ import roundtrip.place.domain.entity.ThumbnailSource;
 import roundtrip.place.domain.entity.ThumbnailImage;
 import roundtrip.place.domain.repository.PlaceRepository;
 import roundtrip.place.infrastructure.external.GooglePlacesClient;
+import roundtrip.place.infrastructure.external.NaverImageSearchClient;
 import roundtrip.place.infrastructure.external.WikimediaClient;
 
 import java.math.BigDecimal;
@@ -27,6 +28,7 @@ class ThumbnailFetcherTest {
 
     @Mock WikimediaClient wikimediaClient;
     @Mock GooglePlacesClient googlePlacesClient;
+    @Mock NaverImageSearchClient naverImageSearchClient;
     @Mock PlaceRepository placeRepository;
 
     @InjectMocks ThumbnailFetcher thumbnailFetcher;
@@ -82,10 +84,30 @@ class ThumbnailFetcherTest {
     }
 
     @Test
-    void fetchAndUpdate_bothFail_marksAsNone() {
+    void fetchAndUpdate_googleFails_fallsBackToNaver() {
         when(placeRepository.findById(placeId)).thenReturn(Optional.of(place));
         when(wikimediaClient.fetchImage("경복궁")).thenReturn(Optional.empty());
         when(googlePlacesClient.fetchImage("경복궁")).thenReturn(Optional.empty());
+        when(naverImageSearchClient.fetchImage("경복궁"))
+                .thenReturn(Optional.of(new ThumbnailImage(
+                        "https://search.pstatic.net/common/?src=thumb.jpg",
+                        "경복궁 전경", null, null,
+                        "https://example.com/original.jpg")));
+
+        thumbnailFetcher.fetchAndUpdate(placeId);
+
+        assertThat(place.getThumbnailUrl()).isEqualTo("https://search.pstatic.net/common/?src=thumb.jpg");
+        assertThat(place.getThumbnailSource()).isEqualTo(ThumbnailSource.NAVER_IMAGE);
+        assertThat(place.getThumbnailAttribution()).isEqualTo("경복궁 전경");
+        verify(placeRepository).save(place);
+    }
+
+    @Test
+    void fetchAndUpdate_allFail_marksAsNone() {
+        when(placeRepository.findById(placeId)).thenReturn(Optional.of(place));
+        when(wikimediaClient.fetchImage("경복궁")).thenReturn(Optional.empty());
+        when(googlePlacesClient.fetchImage("경복궁")).thenReturn(Optional.empty());
+        when(naverImageSearchClient.fetchImage("경복궁")).thenReturn(Optional.empty());
 
         thumbnailFetcher.fetchAndUpdate(placeId);
 
