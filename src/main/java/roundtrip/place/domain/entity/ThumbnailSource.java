@@ -4,5 +4,6 @@ public enum ThumbnailSource {
     NONE,
     FLICKR,
     WIKIMEDIA,
-    GOOGLE_PLACES
+    GOOGLE_PLACES,
+    NAVER_IMAGE
 }
