@@ -1,0 +1,46 @@
+groups:
+  - name: roundtrip-ai-operations
+    rules:
+      # success와 fallback은 오류로 보지 않는다.
+      - alert: AIProviderHighErrorRate
+        expr: |
+          (
+            sum by (provider) (
+              rate(ai_provider_requests_total{result=~"timeout|rate_limited|client_error|server_error|circuit_open|unknown_error"}[5m])
+            )
+            /
+            clamp_min(
+              sum by (provider) (rate(ai_provider_requests_total[5m])),
+              1e-9
+            )
+          ) > 0.10
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "AI Provider 오류 비율이 높다"
+          description: "최근 5분 {{ $labels.provider }} 요청 중 오류 비율이 10%를 넘었다."
+
+      # p95 임계값은 부하 실험(#99)에서 측정한 Provider 지연으로 교체한다.
+      # 실험 전에는 호출이 사실상 멈춘 수준만 알리기 위해 60초를 쓴다.
+      - alert: AIProviderHighLatency
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le, provider) (rate(ai_provider_request_duration_seconds_bucket[5m]))
+          ) > 60
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "AI Provider p95 지연이 높다"
+          description: "{{ $labels.provider }} p95가 60초를 넘었다. 임계값은 #99 실험 결과로 조정한다."
+
+      - alert: AIConcurrencySaturation
+        expr: min by (provider) (ai_concurrency_available) == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "AI 세마포어가 포화 상태로 유지된다"
+          description: "{{ $labels.provider }} 사용 가능한 permit이 1분 동안 0이다. 순간적인 포화는 이 알림 대상이 아니다."
