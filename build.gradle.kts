@@ -65,6 +65,7 @@ dependencies {
 	testImplementation(platform("org.testcontainers:testcontainers-bom:1.20.4"))
 	testImplementation("org.testcontainers:junit-jupiter")
 	testImplementation("org.testcontainers:postgresql")
+	testImplementation("io.micrometer:micrometer-registry-prometheus")
 	testCompileOnly("org.projectlombok:lombok")
 	testAnnotationProcessor("org.projectlombok:lombok")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
@@ -88,4 +89,35 @@ tasks.register<Test>("externalTest") {
 	useJUnitPlatform {
 		includeTags("external")
 	}
+}
+
+tasks.register<JavaExec>("aiConcurrencyHarness") {
+	description = "Starts the AI concurrency load-test harness against Redis and a mock provider"
+	group = "verification"
+	classpath = sourceSets["test"].runtimeClasspath
+	mainClass.set("roundtrip.loadtest.AiConcurrencyLoadHarness")
+	environment(
+		"REDIS_HOST",
+		(findProperty("redisHost") ?: System.getenv().getOrDefault("REDIS_HOST", "127.0.0.1")).toString()
+	)
+	environment(
+		"REDIS_PORT",
+		(findProperty("redisPort") ?: System.getenv().getOrDefault("REDIS_PORT", "6379")).toString()
+	)
+	environment(
+		"HARNESS_PORT",
+		(findProperty("harnessPort") ?: System.getenv().getOrDefault("HARNESS_PORT", "18080")).toString()
+	)
+	environment(
+		"MOCK_LATENCY_MS",
+		(findProperty("mockLatencyMs") ?: System.getenv().getOrDefault("MOCK_LATENCY_MS", "500")).toString()
+	)
+	environment(
+		"MOCK_CAPACITY",
+		(findProperty("mockCapacity") ?: System.getenv().getOrDefault("MOCK_CAPACITY", "4")).toString()
+	)
+	environment(
+		"ACQUIRE_TIMEOUT_SECONDS",
+		(findProperty("acquireTimeoutSeconds") ?: System.getenv().getOrDefault("ACQUIRE_TIMEOUT_SECONDS", "10")).toString()
+	)
 }

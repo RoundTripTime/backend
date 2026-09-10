@@ -90,4 +90,8 @@ src/main/resources/db/migration/local/
 test-results/
 reports/
 
-docs/
+docs/*
+!docs/performance/
+!docs/performance/**
+
+observability/loadtest/results/

@@ -21,8 +21,10 @@ groups:
           summary: "AI Provider 오류 비율이 높다"
           description: "최근 5분 {{ $labels.provider }} 요청 중 오류 비율이 10%를 넘었다."
 
-      # p95 임계값은 부하 실험(#99)에서 측정한 Provider 지연으로 교체한다.
-      # 실험 전에는 호출이 사실상 멈춘 수준만 알리기 위해 60초를 쓴다.
+      # p95 임계값은 부하 실험(#99) 결과를 보고 정한다.
+      # 목 Provider 500ms, permit 4, 동시성 32에서 사용자 p95는 약 8초였다.
+      # 그 값은 목 지연과 세마포어 대기의 합이라 운영 LLM 지연을 대신하지 않는다.
+      # 운영 실측 전에는 호출이 사실상 멈춘 수준만 알리기 위해 60초를 유지한다.
       - alert: AIProviderHighLatency
         expr: |
           histogram_quantile(
@@ -34,7 +36,7 @@ groups:
           severity: warning
         annotations:
           summary: "AI Provider p95 지연이 높다"
-          description: "{{ $labels.provider }} p95가 60초를 넘었다. 임계값은 #99 실험 결과로 조정한다."
+          description: "{{ $labels.provider }} p95가 60초를 넘었다. 목 부하 실험 수치는 운영 LLM 지연이 아니라서 60초를 유지한다."
 
       - alert: AIConcurrencySaturation
         expr: min by (provider) (ai_concurrency_available) == 0
