@@ -9,6 +9,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientResponseException;
 
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+
 import java.net.SocketTimeoutException;
 import java.net.http.HttpTimeoutException;
 import java.time.Duration;
@@ -40,16 +42,18 @@ public class AiProviderMetrics {
         Timer.Sample sample = startTimer();
         long started = System.nanoTime();
         AiProviderResult result = AiProviderResult.SUCCESS;
+        RuntimeException failure = null;
         try {
             return call.get();
         } catch (RuntimeException e) {
+            failure = e;
             result = classify(e);
             throw e;
         } finally {
             long durationMs = Duration.ofNanos(System.nanoTime() - started).toMillis();
             recordLatency(provider, operation, sample);
             recordRequest(provider, operation, result);
-            logOutcome(provider, operation, result, durationMs);
+            logOutcome(provider, operation, result, durationMs, failure);
         }
     }
 
@@ -102,7 +106,14 @@ public class AiProviderMetrics {
     public AiProviderResult classify(Throwable error) {
         Throwable current = error;
         while (current != null) {
-            if (current instanceof SocketTimeoutException || current instanceof HttpTimeoutException) {
+            if (current instanceof CallNotPermittedException) {
+                return AiProviderResult.CIRCUIT_OPEN;
+            }
+            if (current instanceof SocketTimeoutException
+                    || current instanceof HttpTimeoutException
+                    || current instanceof java.io.InterruptedIOException
+                    || current instanceof java.util.concurrent.CancellationException
+                    || current instanceof java.util.concurrent.TimeoutException) {
                 return AiProviderResult.TIMEOUT;
             }
             if (current instanceof RestClientResponseException ex) {
@@ -126,13 +137,28 @@ public class AiProviderMetrics {
     }
 
     public void logOutcome(String provider, String operation, AiProviderResult result, long durationMs) {
+        logOutcome(provider, operation, result, durationMs, null);
+    }
+
+    private void logOutcome(
+            String provider,
+            String operation,
+            AiProviderResult result,
+            long durationMs,
+            Throwable error
+    ) {
         if (result == AiProviderResult.SUCCESS) {
             log.debug("provider={} operation={} result={} durationMs={}",
                     provider, operation, result.label(), durationMs);
             return;
         }
-        log.warn("provider={} operation={} result={} durationMs={}",
-                provider, operation, result.label(), durationMs);
+        if (error == null) {
+            log.warn("provider={} operation={} result={} durationMs={}",
+                    provider, operation, result.label(), durationMs);
+            return;
+        }
+        log.warn("provider={} operation={} result={} durationMs={} errorType={} error={}",
+                provider, operation, result.label(), durationMs, error.getClass().getName(), error.getMessage());
     }
 
     private Timer requestTimer(String provider, String operation) {
@@ -149,6 +175,8 @@ public class AiProviderMetrics {
             return false;
         }
         String lower = message.toLowerCase();
-        return lower.contains("timed out") || lower.contains("timeout");
+        return lower.contains("timed out")
+                || lower.contains("timeout")
+                || lower.contains("request cancelled");
     }
 }

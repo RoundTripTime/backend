@@ -1,5 +1,8 @@
 package roundtrip.common.observability;
 
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -85,8 +88,16 @@ class AiProviderMetricsTest {
                 .isEqualTo(AiProviderResult.UNKNOWN_ERROR);
         assertThat(metrics.classify(new ResourceAccessException("connect timed out")))
                 .isEqualTo(AiProviderResult.TIMEOUT);
+        assertThat(metrics.classify(new ResourceAccessException(
+                "I/O error on POST request for \"http://localhost\": Request cancelled",
+                new java.io.IOException("Request cancelled", new java.util.concurrent.CancellationException("Request cancelled")))))
+                .isEqualTo(AiProviderResult.TIMEOUT);
         assertThat(metrics.classify(new IllegalStateException("boom")))
                 .isEqualTo(AiProviderResult.UNKNOWN_ERROR);
+        CircuitBreaker open = CircuitBreaker.of("metrics-open", CircuitBreakerConfig.ofDefaults());
+        open.transitionToOpenState();
+        assertThat(metrics.classify(CallNotPermittedException.createCallNotPermittedException(open)))
+                .isEqualTo(AiProviderResult.CIRCUIT_OPEN);
     }
 
     @Test

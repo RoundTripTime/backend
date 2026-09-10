@@ -1,14 +1,10 @@
 package roundtrip.sourcelink.infrastructure.external;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
-import roundtrip.common.infrastructure.FeatherlessAiRateLimiter;
+import roundtrip.common.infrastructure.FeatherlessAiIsolation;
 import roundtrip.common.infrastructure.FeatherlessAiResponseSanitizer;
-import roundtrip.common.observability.AiProviderMetrics;
-import roundtrip.common.observability.AiProviderResult;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -16,7 +12,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Component
@@ -41,20 +36,15 @@ public class FeatherlessAiClient {
     private final RestClient restClient;
     private final FeatherlessAiProperties properties;
     private final ObjectMapper objectMapper;
-    private final FeatherlessAiRateLimiter rateLimiter;
-    private final AiProviderMetrics metrics;
+    private final FeatherlessAiIsolation isolation;
 
     public FeatherlessAiClient(FeatherlessAiProperties properties, ObjectMapper objectMapper,
-                                FeatherlessAiRateLimiter rateLimiter, AiProviderMetrics metrics) {
+                                RestClient featherlessAiRestClient,
+                                FeatherlessAiIsolation isolation) {
         this.properties = properties;
         this.objectMapper = objectMapper;
-        this.rateLimiter = rateLimiter;
-        this.metrics = metrics;
-        this.restClient = RestClient.builder()
-                .baseUrl("https://api.featherless.ai/v1")
-                .defaultHeader("Authorization", "Bearer " + properties.apiKey())
-                .defaultHeader("Content-Type", "application/json")
-                .build();
+        this.restClient = featherlessAiRestClient;
+        this.isolation = isolation;
     }
 
     public List<PlaceParseResult> parsePlaces(String content) {
@@ -69,31 +59,31 @@ public class FeatherlessAiClient {
                 "max_tokens", 4096
         );
 
-        if (!rateLimiter.tryAcquire(60, TimeUnit.SECONDS)) {
-            metrics.recordRequest("featherless", "place_extraction", AiProviderResult.FALLBACK);
-            metrics.logOutcome("featherless", "place_extraction", AiProviderResult.FALLBACK, 0);
-            return Collections.emptyList();
-        }
-        try {
-            return metrics.recordCall("featherless", "place_extraction", () -> {
-                ChatCompletionResponse response = restClient.post()
-                        .uri("/chat/completions")
-                        .body(requestBody)
-                        .retrieve()
-                        .body(ChatCompletionResponse.class);
-
-                if (response == null || response.choices() == null || response.choices().isEmpty()) {
+        return isolation.run("place_extraction", properties.acquireTimeout(), () -> {
+            try {
+                byte[] raw = isolation.invokeHttp("place_extraction", () ->
+                        restClient.post()
+                                .uri("/chat/completions")
+                                .body(requestBody)
+                                .retrieve()
+                                .body(byte[].class));
+                if (raw == null || raw.length == 0) {
                     return Collections.emptyList();
                 }
-
-                String text = response.choices().get(0).message().content();
-                return parseJsonResponse(text);
-            });
-        } catch (Exception e) {
-            return Collections.emptyList();
-        } finally {
-            rateLimiter.release();
-        }
+                JsonNode root = objectMapper.readTree(raw);
+                JsonNode choices = root.get("choices");
+                if (choices == null || !choices.isArray() || choices.isEmpty()) {
+                    return Collections.emptyList();
+                }
+                JsonNode messageContent = choices.get(0).path("message").path("content");
+                if (messageContent.isMissingNode() || messageContent.isNull()) {
+                    return Collections.emptyList();
+                }
+                return parseJsonResponse(messageContent.asText());
+            } catch (RuntimeException e) {
+                return Collections.emptyList();
+            }
+        }, denied -> Collections.emptyList());
     }
 
     List<PlaceParseResult> parseJsonResponse(String text) {
@@ -158,13 +148,4 @@ public class FeatherlessAiClient {
 
         return objects;
     }
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    record ChatCompletionResponse(List<Choice> choices) {}
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    record Choice(Message message) {}
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    record Message(String role, String content) {}
 }

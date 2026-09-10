@@ -40,6 +40,9 @@ dependencies {
 	// --- Cache / Async (Redisson) ---
 	implementation("org.redisson:redisson-spring-boot-starter:4.3.1")
 
+	implementation("io.github.resilience4j:resilience4j-circuitbreaker:2.3.0")
+	implementation("io.github.resilience4j:resilience4j-retry:2.3.0")
+
 	// --- Push (Firebase FCM + APNs) ---
 	implementation("com.google.firebase:firebase-admin:9.8.0")
 
