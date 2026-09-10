@@ -60,3 +60,5 @@ permit 4와 목 한도 4가 같아, 동시성 4에서 세마포어가 가득 찬
 ## CI
 
 기본 PR CI는 k6를 실행하지 않고 실제 외부 API도 호출하지 않는다. `AiConcurrencySaturationTest`가 Redis 위에서 세마포어가 목 Provider 동시성을 4로 제한하는지 확인한다.
+
+관련 문서: [AI 런타임](../architecture/ai-runtime.md), [관측](../operations/observability.md), [실패 처리](../operations/failure-handling.md).

@@ -22,3 +22,15 @@
 
 - 브랜치 전략 및 커밋 규칙 → [CONTRIBUTING.md](CONTRIBUTING.md)
 - 이슈 / PR 작성 → [.github/](.github/)
+
+---
+
+## 운영 문서
+
+구현과 같은 내용만 적는다. Kubernetes나 분산 추적을 도입한 것처럼 읽히면 안 된다.
+
+- [AI 런타임](docs/architecture/ai-runtime.md)
+- [관측](docs/operations/observability.md)
+- [실패 처리](docs/operations/failure-handling.md)
+- [AI 동시성 부하 실험](docs/performance/ai-load-test.md)
+- [배포와 롤백](docs/deployment/deployment-and-rollback.md)

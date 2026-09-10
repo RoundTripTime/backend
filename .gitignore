@@ -91,7 +91,13 @@ test-results/
 reports/
 
 docs/*
+!docs/architecture/
+!docs/architecture/**
+!docs/operations/
+!docs/operations/**
 !docs/performance/
 !docs/performance/**
+!docs/deployment/
+!docs/deployment/**
 
 observability/loadtest/results/
