@@ -1,6 +1,6 @@
 # AI 런타임
 
-사용자 요청이 백엔드와 Redis 세마포어를 지나 FeatherlessAI로 가는 경로만 적는다. 이 저장소는 Kubernetes나 서비스 메시를 쓰지 않는다.
+사용자 요청은 백엔드와 Redis 세마포어를 지나 FeatherlessAI로 간다.
 
 ## 두 갈래
 

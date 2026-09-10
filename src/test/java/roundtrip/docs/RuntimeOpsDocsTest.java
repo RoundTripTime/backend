@@ -28,7 +28,7 @@ class RuntimeOpsDocsTest {
     }
 
     @Test
-    void docsMatchImplementedRuntimeAndDoNotClaimMissingPlatforms() throws IOException {
+    void docsMatchImplementedRuntime() throws IOException {
         String runtime = read("docs/architecture/ai-runtime.md");
         assertThat(runtime).contains("featherlessai:concurrency");
         assertThat(runtime).contains("PlanningAgentService");
@@ -43,7 +43,6 @@ class RuntimeOpsDocsTest {
         assertThat(failure).contains("max-wait-for-retry-after");
         assertThat(failure).contains("FeatherlessAiIsolation");
         assertThat(failure).contains("Supadata");
-        assertThat(failure).contains("별개의 이슈로 처리한다");
 
         String observability = read("docs/operations/observability.md");
         assertThat(observability).contains("ai_provider_requests_total");
@@ -64,12 +63,13 @@ class RuntimeOpsDocsTest {
         assertThat(load).contains("포화는 어느 동시성부터인가");
         assertThat(load).contains("대기 지연은 언제 급증하는가");
 
-        assertThat(runtime).contains("Kubernetes나 서비스 메시를 쓰지 않는다");
-        assertThat(observability).contains("OpenTelemetry 분산 추적을 도입하지 않았다");
-        assertThat(deploy).contains("Kubernetes나 Helm으로 배포하지 않는다");
         for (String path : DOC_PATHS) {
             String body = read(path);
             assertThat(body).doesNotContain("sk-");
+            assertThat(body).doesNotContain("Kubernetes");
+            assertThat(body).doesNotContain("Helm");
+            assertThat(body).doesNotContain("OpenTelemetry");
+            assertThat(body).doesNotContain("분산 추적");
         }
     }
 

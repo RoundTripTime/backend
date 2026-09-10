@@ -1,6 +1,6 @@
 # 배포와 롤백
 
-이 문서는 `scripts/deploy.sh`와 `.github/workflows/deploy.yml`과 같아야 한다. Kubernetes나 Helm으로 배포하지 않는다. GitHub Actions가 JAR을 EC2로 보내고 systemd 유닛 `roundtrip`을 재시작한다.
+GitHub Actions가 JAR을 EC2로 보내고 systemd 유닛 `roundtrip`을 재시작한다. 스크립트는 `scripts/deploy.sh`이고 워크플로는 `.github/workflows/deploy.yml`이다.
 
 ## 워크플로
 
@@ -9,7 +9,7 @@
 1. **Build.** Java 21, 테스트용 Postgres 이미지, `./gradlew clean build -x test`.
 2. **Test.** `./gradlew test`. 기본 테스트 태스크는 `@Tag("external")`를 제외하므로 실제 외부 Provider 테스트는 이 단계에서 돌지 않는다.
 3. **Package.** `build/libs/roundtrip.jar`를 아티팩트로 올린다. 보관 3일이다.
-4. **Deploy.** 아티팩트와 `scripts/deploy.sh`, `scripts/roundtrip.service`를 EC2로 복사한다. JAR는 `/opt/roundtrip/roundtrip-new.jar`다. GitHub Secrets로 `/opt/roundtrip/.env`와 Firebase 키 파일을 만든다. 시크릿 값은 이 문서에 적지 않는다. 이름 목록은 워크플로 파일을 본다.
+4. **Deploy.** 아티팩트와 `scripts/deploy.sh`, `scripts/roundtrip.service`를 EC2로 복사한다. JAR는 `/opt/roundtrip/roundtrip-new.jar`다. GitHub Secrets로 `/opt/roundtrip/.env`와 Firebase 키 파일을 만든다. 시크릿 이름 목록은 워크플로 파일을 본다.
 5. **Verify.** `sudo bash /opt/roundtrip/deploy.sh`가 health와 스모크를 수행한다. 실패하면 배포 job이 실패한다.
 
 ## deploy.sh 순서

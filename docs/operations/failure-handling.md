@@ -11,7 +11,7 @@ FeatherlessAI 격리만 이 문서의 대상이다. 타임아웃과 재시도, �
 
 ## 타임아웃
 
-연결 타임아웃 기본값은 2초, 읽기 타임아웃 기본값은 30초다. 값은 `featherlessai.connect-timeout`, `featherlessai.read-timeout`이다. 코드에 초 숫자를 반복해 넣지 않는다.
+연결 타임아웃 기본값은 2초, 읽기 타임아웃 기본값은 30초다. 값은 `featherlessai.connect-timeout`, `featherlessai.read-timeout`이다.
 
 세마포어 획득 타임아웃은 경로마다 다르다. 추출은 `featherlessai.acquire-timeout`이고 기본 60초다. Planning Agent는 10초로 고정이다.
 
@@ -44,5 +44,3 @@ Resilience4j를 쓴다. 기본값은 슬라이딩 윈도우 10, 최소 호출 5,
 | Supadata | 아니오 | 추출 앞단에서 메타데이터와 자막을 가져온다. FeatherlessAI 세마포어 밖이다 |
 | Kakao Local | 아니오 | 추출 뒤 좌표 검색에 쓴다. 세마포어 밖이다 |
 | Google Places, Naver, MyRealTrip | 아니오 | 이 문서의 서킷과 세마포어를 타지 않는다 |
-
-다른 Provider에 같은 격리를 넣는 일은 별개의 이슈로 처리한다.
