@@ -52,6 +52,24 @@ supadata:
 featherlessai:
   api-key: ${FEATHERLESSAI_API_KEY:}
   model: Qwen/Qwen3-235B-A22B
+  base-url: ${FEATHERLESSAI_BASE_URL:https://api.featherless.ai/v1}
+  connect-timeout: 2s
+  read-timeout: 30s
+  acquire-timeout: 60s
+  retry:
+    max-attempts: 3
+    wait-duration: 1ms
+    exponential-backoff-multiplier: 1.0
+    retry-on-timeout: true
+  circuit-breaker:
+    sliding-window-size: 10
+    minimum-number-of-calls: 5
+    failure-rate-threshold: 50
+    wait-duration-in-open-state: 30s
+    permitted-number-of-calls-in-half-open-state: 2
+  rate-limit:
+    honor-retry-after: true
+    max-wait-for-retry-after: 0s
 
 kakao:
   local:

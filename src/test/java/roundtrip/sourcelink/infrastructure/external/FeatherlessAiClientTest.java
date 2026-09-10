@@ -2,7 +2,8 @@ package roundtrip.sourcelink.infrastructure.external;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import roundtrip.common.infrastructure.FeatherlessAiRateLimiter;
+import org.springframework.web.client.RestClient;
+import roundtrip.common.infrastructure.FeatherlessAiIsolation;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.util.List;
@@ -17,10 +18,10 @@ class FeatherlessAiClientTest {
     @BeforeEach
     void setUp() {
         client = new FeatherlessAiClient(
-                new FeatherlessAiProperties("test-key", "test-model"),
+                FeatherlessAiProperties.of("test-key", "test-model"),
                 JsonMapper.builder().build(),
-                mock(FeatherlessAiRateLimiter.class),
-                mock(roundtrip.common.observability.AiProviderMetrics.class)
+                mock(RestClient.class),
+                mock(FeatherlessAiIsolation.class)
         );
     }
 
