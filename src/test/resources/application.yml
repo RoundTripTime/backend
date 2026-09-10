@@ -82,5 +82,10 @@ management:
       exposure:
         include: health,prometheus
   endpoint:
+    health:
+      group:
+        smoke:
+          include: db,redis
+          show-details: always
     prometheus:
       enabled: true

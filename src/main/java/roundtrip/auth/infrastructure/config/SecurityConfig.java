@@ -37,7 +37,7 @@ public class SecurityConfig {
                 .requestMatchers("/market/**").authenticated()
                 .requestMatchers("/public/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
-                .requestMatchers("/actuator/health", "/actuator/prometheus").permitAll()
+                .requestMatchers("/actuator/health", "/actuator/health/smoke", "/actuator/prometheus").permitAll()
                 .anyRequest().authenticated())
             .exceptionHandling(handling -> handling.authenticationEntryPoint(authenticationEntryPoint))
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

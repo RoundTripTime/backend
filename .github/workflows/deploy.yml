@@ -37,7 +37,7 @@ jobs:
       - name: Test
         run: ./gradlew test
 
-      - name: Upload JAR artifact
+      - name: Package JAR artifact
         uses: actions/upload-artifact@v4
         with:
           name: roundtrip-jar
@@ -115,6 +115,6 @@ jobs:
           sudo systemctl enable roundtrip
           DEPLOYEOF
 
-      - name: Run deploy script
+      - name: Verify health and smoke
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} 'sudo bash /opt/roundtrip/deploy.sh'
