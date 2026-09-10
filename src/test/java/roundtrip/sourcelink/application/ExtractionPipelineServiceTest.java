@@ -1,5 +1,6 @@
 package roundtrip.sourcelink.application;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -20,14 +21,17 @@ import roundtrip.sourcelink.infrastructure.external.KakaoLocalDocument;
 import roundtrip.place.application.ThumbnailFetcher;
 import roundtrip.sourcelink.infrastructure.external.PlaceParseResult;
 import roundtrip.sourcelink.infrastructure.external.SupadataClient;
+import roundtrip.common.observability.PipelineMetrics;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -42,8 +46,17 @@ class ExtractionPipelineServiceTest {
     @Mock KakaoLocalClient kakaoLocalClient;
     @Mock ObjectMapper objectMapper;
     @Mock ThumbnailFetcher thumbnailFetcher;
+    @Mock PipelineMetrics pipelineMetrics;
 
     @InjectMocks ExtractionPipelineService service;
+
+    @BeforeEach
+    void stubPipelineTimers() {
+        when(pipelineMetrics.timeStage(anyString(), any(Supplier.class))).thenAnswer(invocation -> {
+            Supplier<?> supplier = invocation.getArgument(1);
+            return supplier.get();
+        });
+    }
 
     @Test
     void normalizePlaces_kakaoMatch_linksSavedPlaceToCandidate() throws Exception {

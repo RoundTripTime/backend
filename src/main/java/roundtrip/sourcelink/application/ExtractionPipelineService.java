@@ -18,6 +18,7 @@ import roundtrip.place.application.ThumbnailFetcher;
 import roundtrip.sourcelink.domain.entity.SourceLink;
 import roundtrip.sourcelink.domain.repository.SourceLinkRepository;
 import roundtrip.sourcelink.infrastructure.external.*;
+import roundtrip.common.observability.PipelineMetrics;
 import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
@@ -39,6 +40,7 @@ public class ExtractionPipelineService {
     private final KakaoLocalClient kakaoLocalClient;
     private final ThumbnailFetcher thumbnailFetcher;
     private final ObjectMapper objectMapper;
+    private final PipelineMetrics pipelineMetrics;
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -55,20 +57,33 @@ public class ExtractionPipelineService {
 
         startJob(job);
 
+        var sample = pipelineMetrics.startTimer();
+        String pipelineResult = PipelineMetrics.FAILURE;
         try {
-            SupadataMetadataResponse metadata = supadataClient.fetchMetadata(sourceLink.getUrl());
+            SupadataMetadataResponse metadata = pipelineMetrics.timeStage("supadata",
+                    () -> supadataClient.fetchMetadata(sourceLink.getUrl()));
             updateSourceLinkProcessing(sourceLink, metadata);
 
             String metadataContent = buildMetadataContent(metadata);
-            List<PlaceParseResult> phase1Result = featherlessAiClient.parsePlaces(metadataContent);
+            List<PlaceParseResult> phase1Result = pipelineMetrics.timeStage("llm",
+                    () -> featherlessAiClient.parsePlaces(metadataContent));
 
             if (!phase1Result.isEmpty()) {
                 List<PlaceCandidate> candidates = normalizePlaces(phase1Result, job);
                 completeJob(job, sourceLink, candidates.size());
+                pipelineResult = PipelineMetrics.SUCCESS;
             } else {
                 String prompt = buildExtractPrompt(metadata);
-                SupadataExtractResponse extractResponse = supadataClient.submitExtract(sourceLink.getUrl(), prompt);
-                SupadataExtractResultResponse extractResult = pollExtractResult(extractResponse.jobId());
+                SupadataExtractResponse extractResponse = pipelineMetrics.timeStage("supadata",
+                        () -> supadataClient.submitExtract(sourceLink.getUrl(), prompt));
+                SupadataExtractResultResponse extractResult = pipelineMetrics.timeStage("supadata", () -> {
+                    try {
+                        return pollExtractResult(extractResponse.jobId());
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new IllegalStateException("Supadata extract poll interrupted", e);
+                    }
+                });
 
                 if ("failed".equals(extractResult.status())) {
                     failJob(job, sourceLink, "EXTRACTION_FAILED");
@@ -76,11 +91,13 @@ public class ExtractionPipelineService {
                 }
 
                 String fullContent = buildFullContent(metadata, extractResult);
-                List<PlaceParseResult> phase2Result = featherlessAiClient.parsePlaces(fullContent);
+                List<PlaceParseResult> phase2Result = pipelineMetrics.timeStage("llm",
+                        () -> featherlessAiClient.parsePlaces(fullContent));
 
                 if (!phase2Result.isEmpty()) {
                     List<PlaceCandidate> candidates = normalizePlaces(phase2Result, job);
                     completeJob(job, sourceLink, candidates.size());
+                    pipelineResult = PipelineMetrics.PARTIAL_SUCCESS;
                 } else {
                     failJob(job, sourceLink, "NO_PLACES_FOUND");
                 }
@@ -89,6 +106,8 @@ public class ExtractionPipelineService {
         } catch (Exception e) {
             log.error("Pipeline failed for jobId={}, sourceLinkId={}", jobId, sourceLink.getId(), e);
             failJob(job, sourceLink, "INTERNAL_ERROR");
+        } finally {
+            pipelineMetrics.recordExtraction(pipelineResult, sample);
         }
     }
 
@@ -152,7 +171,8 @@ public class ExtractionPipelineService {
             String providerMatchJson = null;
             UUID placeId = null;
 
-            List<KakaoLocalDocument> kakaoResults = kakaoLocalClient.searchByKeyword(result.name());
+            List<KakaoLocalDocument> kakaoResults = pipelineMetrics.timeStage("place_search",
+                    () -> kakaoLocalClient.searchByKeyword(result.name()));
             if (!kakaoResults.isEmpty()) {
                 KakaoLocalDocument topMatch = kakaoResults.get(0);
                 Place place = findOrCreatePlace(topMatch, result.evidence());
@@ -180,7 +200,7 @@ public class ExtractionPipelineService {
             candidates.add(candidate);
         }
 
-        return placeCandidateRepository.saveAll(candidates);
+        return pipelineMetrics.timeStage("persistence", () -> placeCandidateRepository.saveAll(candidates));
     }
 
     private Place findOrCreatePlace(KakaoLocalDocument document, String evidence) {

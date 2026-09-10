@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RSemaphore;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Component;
+import roundtrip.common.observability.AiProviderMetrics;
 
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
@@ -17,29 +18,44 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class FeatherlessAiRateLimiter {
 
-    private static final String SEMAPHORE_KEY = "featherlessai:concurrency";
-    private static final int MAX_PERMITS = 4;
+    public static final String PROVIDER = "featherless";
+    static final String SEMAPHORE_KEY = "featherlessai:concurrency";
+    public static final int MAX_PERMITS = 4;
 
     private final RSemaphore semaphore;
+    private final AiProviderMetrics metrics;
 
-    public FeatherlessAiRateLimiter(RedissonClient redissonClient) {
+    public FeatherlessAiRateLimiter(RedissonClient redissonClient, AiProviderMetrics metrics) {
+        this.metrics = metrics;
         this.semaphore = redissonClient.getSemaphore(SEMAPHORE_KEY);
         this.semaphore.trySetPermits(MAX_PERMITS);
+        this.metrics.registerConcurrencyGauges(PROVIDER, this::availablePermits, MAX_PERMITS);
     }
 
     /**
      * permit을 획득한다. 타임아웃 내 실패 시 false 반환.
      */
     public boolean tryAcquire(long timeout, TimeUnit unit) {
+        long started = System.nanoTime();
+        String result = "timeout";
+        boolean acquired = false;
         try {
-            boolean acquired = semaphore.tryAcquire(Duration.ofMillis(unit.toMillis(timeout)));
+            acquired = semaphore.tryAcquire(Duration.ofMillis(unit.toMillis(timeout)));
+            result = acquired ? "acquired" : "timeout";
             if (!acquired) {
-                log.warn("FeatherlessAI concurrency limit reached, could not acquire permit within {} {}", timeout, unit);
+                metrics.recordAcquireFailure(PROVIDER);
+                log.warn("provider={} operation=acquire result=timeout timeout={} {}",
+                        PROVIDER, timeout, unit);
             }
             return acquired;
         } catch (InterruptedException e) {
+            result = "interrupted";
+            metrics.recordAcquireFailure(PROVIDER);
             Thread.currentThread().interrupt();
+            log.warn("provider={} operation=acquire result=interrupted", PROVIDER);
             return false;
+        } finally {
+            metrics.recordConcurrencyWait(PROVIDER, result, Duration.ofNanos(System.nanoTime() - started));
         }
     }
 
@@ -48,5 +64,9 @@ public class FeatherlessAiRateLimiter {
      */
     public void release() {
         semaphore.release();
+    }
+
+    int availablePermits() {
+        return semaphore.availablePermits();
     }
 }
