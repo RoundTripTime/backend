@@ -7,6 +7,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import roundtrip.common.infrastructure.FeatherlessAiRateLimiter;
 import roundtrip.common.infrastructure.FeatherlessAiResponseSanitizer;
+import roundtrip.common.observability.AiProviderMetrics;
+import roundtrip.common.observability.AiProviderResult;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -40,12 +42,14 @@ public class FeatherlessAiClient {
     private final FeatherlessAiProperties properties;
     private final ObjectMapper objectMapper;
     private final FeatherlessAiRateLimiter rateLimiter;
+    private final AiProviderMetrics metrics;
 
     public FeatherlessAiClient(FeatherlessAiProperties properties, ObjectMapper objectMapper,
-                                FeatherlessAiRateLimiter rateLimiter) {
+                                FeatherlessAiRateLimiter rateLimiter, AiProviderMetrics metrics) {
         this.properties = properties;
         this.objectMapper = objectMapper;
         this.rateLimiter = rateLimiter;
+        this.metrics = metrics;
         this.restClient = RestClient.builder()
                 .baseUrl("https://api.featherless.ai/v1")
                 .defaultHeader("Authorization", "Bearer " + properties.apiKey())
@@ -66,24 +70,26 @@ public class FeatherlessAiClient {
         );
 
         if (!rateLimiter.tryAcquire(60, TimeUnit.SECONDS)) {
-            log.warn("FeatherlessAI rate limit: could not acquire permit for place parsing");
+            metrics.recordRequest("featherless", "place_extraction", AiProviderResult.FALLBACK);
+            metrics.logOutcome("featherless", "place_extraction", AiProviderResult.FALLBACK, 0);
             return Collections.emptyList();
         }
         try {
-            ChatCompletionResponse response = restClient.post()
-                    .uri("/chat/completions")
-                    .body(requestBody)
-                    .retrieve()
-                    .body(ChatCompletionResponse.class);
+            return metrics.recordCall("featherless", "place_extraction", () -> {
+                ChatCompletionResponse response = restClient.post()
+                        .uri("/chat/completions")
+                        .body(requestBody)
+                        .retrieve()
+                        .body(ChatCompletionResponse.class);
 
-            if (response == null || response.choices() == null || response.choices().isEmpty()) {
-                return Collections.emptyList();
-            }
+                if (response == null || response.choices() == null || response.choices().isEmpty()) {
+                    return Collections.emptyList();
+                }
 
-            String text = response.choices().get(0).message().content();
-            return parseJsonResponse(text);
+                String text = response.choices().get(0).message().content();
+                return parseJsonResponse(text);
+            });
         } catch (Exception e) {
-            log.warn("FeatherlessAI API call failed: {}", e.getMessage());
             return Collections.emptyList();
         } finally {
             rateLimiter.release();

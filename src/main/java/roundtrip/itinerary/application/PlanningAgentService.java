@@ -9,6 +9,8 @@ import roundtrip.common.exception.BusinessException;
 import roundtrip.common.exception.ErrorCode;
 import roundtrip.common.infrastructure.FeatherlessAiRateLimiter;
 import roundtrip.common.infrastructure.FeatherlessAiResponseSanitizer;
+import roundtrip.common.observability.AiProviderMetrics;
+import roundtrip.common.observability.PipelineMetrics;
 import roundtrip.itinerary.domain.entity.Itinerary;
 import roundtrip.itinerary.domain.entity.ItineraryItem;
 import roundtrip.itinerary.domain.repository.ItineraryRepository;
@@ -159,19 +161,25 @@ public class PlanningAgentService {
     private final ObjectMapper objectMapper;
     private final FeatherlessAiRateLimiter rateLimiter;
     private final RestClient agentRestClient;
+    private final AiProviderMetrics metrics;
+    private final PipelineMetrics pipelineMetrics;
 
     public PlanningAgentService(ItineraryRepository itineraryRepository,
                                 PlaceRepository placeRepository,
                                 PlaceService placeService,
                                 FeatherlessAiProperties properties,
                                 ObjectMapper objectMapper,
-                                FeatherlessAiRateLimiter rateLimiter) {
+                                FeatherlessAiRateLimiter rateLimiter,
+                                AiProviderMetrics metrics,
+                                PipelineMetrics pipelineMetrics) {
         this.itineraryRepository = itineraryRepository;
         this.placeRepository = placeRepository;
         this.placeService = placeService;
         this.properties = properties;
         this.objectMapper = objectMapper;
         this.rateLimiter = rateLimiter;
+        this.metrics = metrics;
+        this.pipelineMetrics = pipelineMetrics;
         this.agentRestClient = RestClient.builder()
                 .baseUrl("https://api.featherless.ai/v1")
                 .defaultHeader("Authorization", "Bearer " + properties.apiKey())
@@ -199,8 +207,11 @@ public class PlanningAgentService {
         // Agent loop
         List<ToolResult> allToolResults = new ArrayList<>();
         boolean itineraryUpdated = false;
+        var pipelineSample = pipelineMetrics.startTimer();
+        String pipelineResult = PipelineMetrics.FAILURE;
 
         if (!rateLimiter.tryAcquire(10, TimeUnit.SECONDS)) {
+            pipelineMetrics.recordPlanning("fallback", pipelineSample);
             return new AgentResponse("현재 다른 요청을 처리 중입니다. 잠시 후 다시 시도해주세요.", List.of(), false);
         }
         try {
@@ -218,11 +229,12 @@ public class PlanningAgentService {
 
                 ChatCompletionResponse response = null;
                 for (int retry = 0; retry < 5; retry++) {
-                    String rawResponse = agentRestClient.post()
-                            .uri("/chat/completions")
-                            .body(requestBody)
-                            .retrieve()
-                            .body(String.class);
+                    String rawResponse = metrics.recordCall("featherless", "planning_chat", () ->
+                            agentRestClient.post()
+                                    .uri("/chat/completions")
+                                    .body(requestBody)
+                                    .retrieve()
+                                    .body(String.class));
                     log.debug("Agent round {} (retry {}): raw={}", round, retry,
                             rawResponse != null && rawResponse.length() > 500
                                     ? rawResponse.substring(0, 500) + "..." : rawResponse);
@@ -259,6 +271,7 @@ public class PlanningAgentService {
 
                 // If no tool calls, return the final text response
                 if (toolCalls == null || toolCalls.isEmpty()) {
+                    pipelineResult = PipelineMetrics.SUCCESS;
                     return new AgentResponse(content, allToolResults, itineraryUpdated);
                 }
 
@@ -302,15 +315,17 @@ public class PlanningAgentService {
             }
 
             // Max rounds exceeded
+            pipelineResult = PipelineMetrics.SUCCESS;
             return new AgentResponse("요청을 처리했습니다.", allToolResults, itineraryUpdated);
 
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
-            log.error("Planning Agent error for itineraryId={}: {}", itineraryId, e.getMessage(), e);
+            log.error("Planning Agent error for itineraryId={}", itineraryId);
             return new AgentResponse("죄송합니다. 요청 처리 중 오류가 발생했습니다.", List.of(), false);
         } finally {
             rateLimiter.release();
+            pipelineMetrics.recordPlanning(pipelineResult, pipelineSample);
         }
     }
 

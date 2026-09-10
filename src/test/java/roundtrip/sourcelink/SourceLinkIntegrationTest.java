@@ -355,6 +355,14 @@ class SourceLinkIntegrationTest {
             .andExpect(status().isBadRequest());
     }
 
+    @Test
+    void prometheusEndpoint_exposesAiConcurrencyGaugesWithoutAuth() throws Exception {
+        mockMvc.perform(get("/actuator/prometheus"))
+            .andExpect(status().isOk())
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("ai_concurrency_available")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("ai_concurrency_used")));
+    }
+
     // ─────────────────────────── helpers ─────────────────────────────────────
 
     private String signIn() throws Exception {

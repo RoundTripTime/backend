@@ -57,3 +57,12 @@ kakao:
   local:
     api-key: ${KAKAO_REST_API_KEY:}
     base-url: https://dapi.kakao.com
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    prometheus:
+      enabled: true

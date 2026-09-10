@@ -19,7 +19,8 @@ class FeatherlessAiClientTest {
         client = new FeatherlessAiClient(
                 new FeatherlessAiProperties("test-key", "test-model"),
                 JsonMapper.builder().build(),
-                mock(FeatherlessAiRateLimiter.class)
+                mock(FeatherlessAiRateLimiter.class),
+                mock(roundtrip.common.observability.AiProviderMetrics.class)
         );
     }
 
